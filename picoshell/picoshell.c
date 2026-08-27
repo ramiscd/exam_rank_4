@@ -1,37 +1,33 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <sys/types.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdio.h>
+#include <sys/wait.h>
 
-int main(void)
+// Agora recebemos argc e argv na main!
+int main(int argc, char **argv)
 {
-	int pipefd[2]; // Criar um array com 2 valores que serao o stdin e stdout
-	char buffer[100]; // vai guardar o valor que queremos transmitir
+    // Se o usuário não passou nenhum comando, encerra
+    if (argc < 2)
+        return (1);
 
-	pipe(pipefd);
+    pid_t pid = fork();
 
-	pid_t pid = fork(); // Cria um processo filho a partir do pai, agora temos 2 programas em paralelo.
+    if (pid == 0) // FILHO
+    {
+        // argv + 1 ignora o "./picoshell" e pega a partir de "/bin/ls"
+        // argv[1] é o caminho: "/bin/ls"
+        // &argv[1] é a lista: {"/bin/ls", "-l", NULL} (o próprio terminal já coloca NULL no fim de argv!)
+        execve(argv[1], &argv[1], NULL);
 
-	if(pid == 0) // processo filho	o pid e 0
-	{
-		close(pipefd[1]);
-		//  read(DE_ONDE_LER, ONDE_COLOCAR_OS_DADOS, QUANTOS_BYTES_LER);
-		read(pipefd[0], buffer, 100); // ler o que vem da saida do cano e colocar no buffer
-
-		printf("Valor que saiu do cano: %s", buffer);
-	}
-
-	else // processo pai
-	{
-		close(pipefd[0]);
-	
-		write(pipefd[1], "hello", 5); // Escreva o hello na entrada no cano (PIPE)
-
-		close(pipefd[0]);
-	}
+        // Se o execve falhar (ex: caminho errado), ele executa o perror
+        perror("Erro ao executar comando");
+        return (1);
+    }
+    else // PAI
+    {
+        int status;
+        // O pai espera especificamente o filho (pid) terminar antes de fechar
+        waitpid(pid, &status, 0);
+    }
+    return (0);
 }
-
-// Ou seja, o pai possui o "hello" e escreve no pipe.
-// O filho possui um buffer vazio e lê o pipe.
