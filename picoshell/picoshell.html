@@ -1,0 +1,326 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Picoshell - Simulador Interativo</title>
+    <style>
+        :root {
+            --bg-main: #0f172a;
+            --bg-card: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            font-family: system-ui, -apple-system, sans-serif;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 1000px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .controls button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin-left: 10px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .controls button:hover:not(:disabled) { background: var(--accent-hover); }
+        .controls button:disabled { background: #475569; cursor: not-allowed; }
+
+        .hud {
+            display: flex;
+            justify-content: space-around;
+            background: #020617;
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px dashed var(--warning);
+            margin-bottom: 3rem;
+        }
+
+        .hud-item { text-align: center; }
+        .hud-title { color: var(--warning); font-size: 0.9rem; margin: 0 0 5px 0; text-transform: uppercase; letter-spacing: 1px; }
+        .hud-value { font-family: monospace; font-size: 1.2rem; font-weight: bold; margin: 0; }
+        .c-blue { color: #60a5fa; }
+        .c-green { color: #34d399; }
+
+        .diagram {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 150px;
+            margin-bottom: 3rem;
+        }
+
+        .node {
+            background: #334155;
+            border: 2px solid #475569;
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            min-width: 90px;
+            opacity: 0.2;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .node.active { opacity: 1; border-color: var(--accent); box-shadow: 0 0 20px rgba(59, 130, 246, 0.2); }
+        .node.highlight { transform: scale(1.1); border-color: var(--success); box-shadow: 0 0 20px rgba(16, 185, 129, 0.3); z-index: 10; }
+        .node .icon { font-size: 1.5rem; display: block; margin-bottom: 5px; }
+        .node .badge { background: #0f172a; font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; color: var(--text-muted); display: inline-block; margin-top: 8px; }
+
+        .pipe {
+            height: 12px;
+            width: 60px;
+            background: #334155;
+            border-radius: 6px;
+            opacity: 0.2;
+            transition: all 0.4s ease;
+            position: relative;
+        }
+
+        .pipe::before {
+            content: attr(data-label);
+            position: absolute;
+            top: -22px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .pipe.active { opacity: 1; background: #475569; }
+        .pipe.flow { overflow: hidden; }
+        .pipe.flow::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, #3b82f6, #93c5fd, transparent);
+            animation: flowStream 1s infinite linear;
+        }
+
+        @keyframes flowStream { 100% { left: 100%; } }
+
+        .panel {
+            background: #020617;
+            border-left: 4px solid var(--accent);
+            padding: 1.5rem;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .panel p { margin: 0; font-size: 1.1rem; line-height: 1.6; }
+        
+        .code-block {
+            background: #0f172a;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: monospace;
+            color: #a5b4fc;
+            margin: 0;
+            white-space: pre-wrap;
+            border: 1px solid #1e293b;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>Simulador Picoshell: cat | grep | wc</h2>
+        <div class="controls">
+            <span id="step-counter" style="margin-right: 15px; color: var(--text-muted);">Passo 1 de X</span>
+            <button id="btn-prev" onclick="prevStep()">Anterior</button>
+            <button id="btn-next" onclick="nextStep()">Próximo Passo</button>
+        </div>
+    </div>
+
+    <div class="hud">
+        <div class="hud-item">
+            <h3 class="hud-title">Variável i</h3>
+            <p class="hud-value c-blue" id="val-i">0</p>
+        </div>
+        <div class="hud-item" style="border-left: 1px solid #334155; border-right: 1px solid #334155; padding: 0 30px;">
+            <h3 class="hud-title">Processo Pai (Gerente)</h3>
+            <p class="hud-value" style="color: #94a3b8; font-size: 0.9rem;">Controla a alocação dos canos</p>
+        </div>
+        <div class="hud-item">
+            <h3 class="hud-title">Variável in_fd</h3>
+            <p class="hud-value c-green" id="val-infd">0 (Teclado)</p>
+        </div>
+    </div>
+
+    <div class="diagram">
+        <div id="n-stdin" class="node"><span class="icon">⌨️</span>STDIN<br><span class="badge">FD 0</span></div>
+        <div id="p-flow0" class="pipe"></div>
+        <div id="n-cat" class="node"><span class="icon">🐱</span>cat<br><span class="badge">Filho 0</span></div>
+        <div id="p-cano1" class="pipe" data-label="Cano 1"></div>
+        <div id="n-grep" class="node"><span class="icon">🔍</span>grep<br><span class="badge">Filho 1</span></div>
+        <div id="p-cano2" class="pipe" data-label="Cano 2"></div>
+        <div id="n-wc" class="node"><span class="icon">📝</span>wc<br><span class="badge">Filho 2</span></div>
+        <div id="p-flowtela" class="pipe"></div>
+        <div id="n-tela" class="node"><span class="icon">🖥️</span>Tela<br><span class="badge">STDOUT</span></div>
+    </div>
+
+    <div class="panel">
+        <p id="info-msg">Carregando...</p>
+        <pre class="code-block" id="code-block">carregando_codigo();</pre>
+    </div>
+</div>
+
+<script>
+    const states = [
+        {
+            msg: "INÍCIO: O programa começa. A variável in_fd é iniciada com 0 (que representa a entrada padrão, o teclado).",
+            code: "int i = 0, in_fd = 0, fd[2];",
+            i: "0", infd: "0 (STDIN)",
+            active: ["n-stdin"]
+        },
+        {
+            msg: "ITERAÇÃO 0 (Preparação): O comando atual é 'cat'. Existe um próximo comando ('grep' na posição i+1). O Pai chama pipe(fd) para criar o Cano 1.",
+            code: "if (cmds[i + 1] && pipe(fd) < 0)\n    return 1;",
+            i: "0", infd: "0 (STDIN)",
+            active: ["n-stdin", "p-cano1"]
+        },
+        {
+            msg: "ITERAÇÃO 0 (Execução): fork() cria o Filho 0 (cat). O in_fd é 0, então ele não altera a entrada. Mas existe próximo comando, então ele conecta sua SAÍDA na entrada do Cano 1 via dup2().",
+            code: "if (cmds[i + 1]) {\n    dup2(fd[1], 1);\n    close(fd[0]); close(fd[1]);\n}\nexecvp(cmds[i][0], cmds[i]);",
+            i: "0", infd: "0 (STDIN)",
+            active: ["n-stdin", "p-flow0", "n-cat", "p-cano1"],
+            flow: ["p-flow0", "p-cano1"],
+            highlight: ["n-cat"]
+        },
+        {
+            msg: "ITERAÇÃO 0 (Pai Limpa): O Filho 0 está rodando. O Pai fecha a ponta de escrita do Cano 1 e GUARDA a ponta de leitura no in_fd para passar adiante.",
+            code: "if (cmds[i + 1]) {\n    close(fd[1]);\n    in_fd = fd[0];\n}\ni++;",
+            i: "0", infd: "fd[0] do Cano 1",
+            active: ["n-cat", "p-cano1", "n-grep"]
+        },
+        {
+            msg: "ITERAÇÃO 1 (Preparação): Agora i=1. Comando é 'grep'. Existe próximo comando ('wc'). O Pai chama pipe(fd) de novo, criando o Cano 2.",
+            code: "if (cmds[i + 1] && pipe(fd) < 0)\n    return 1;",
+            i: "1", infd: "fd[0] do Cano 1",
+            active: ["n-cat", "p-cano1", "n-grep", "p-cano2"]
+        },
+        {
+            msg: "ITERAÇÃO 1 (Execução): fork() cria Filho 1 (grep). Ele usa dup2() para ler do in_fd (Cano 1) e dup2() para escrever no fd[1] (Cano 2). O dado flui!",
+            code: "if (in_fd != 0) { dup2(in_fd, 0); close(in_fd); }\nif (cmds[i + 1]) { dup2(fd[1], 1); ... }\nexecvp(cmds[i][0], cmds[i]);",
+            i: "1", infd: "fd[0] do Cano 1",
+            active: ["p-cano1", "n-grep", "p-cano2"],
+            flow: ["p-cano1", "p-cano2"],
+            highlight: ["n-grep"]
+        },
+        {
+            msg: "ITERAÇÃO 1 (Pai Limpa): Pai fecha o in_fd antigo (Cano 1), fecha a escrita do Cano 2, e guarda a leitura do Cano 2 na variável in_fd.",
+            code: "if (in_fd != 0) close(in_fd);\nif (cmds[i + 1]) {\n    close(fd[1]);\n    in_fd = fd[0];\n}\ni++;",
+            i: "1", infd: "fd[0] do Cano 2",
+            active: ["n-grep", "p-cano2", "n-wc"]
+        },
+        {
+            msg: "ITERAÇÃO 2 (Preparação): Agora i=2. Comando é 'wc'. NÃO EXISTE próximo comando (cmds[i+1] é NULL). Logo, pipe() NÃO é chamado.",
+            code: "if (cmds[i + 1] && pipe(fd) < 0)\n    // Falso! Pula o pipe.",
+            i: "2", infd: "fd[0] do Cano 2",
+            active: ["n-grep", "p-cano2", "n-wc"]
+        },
+        {
+            msg: "ITERAÇÃO 2 (Execução): fork() cria Filho 2 (wc). Ele lê do in_fd (Cano 2). Como não há próximo comando, ele não altera a saída. O resultado vai direto para a Tela!",
+            code: "if (in_fd != 0) { dup2(in_fd, 0); close(in_fd); }\n// if (cmds[i + 1]) é falso, não altera STDOUT\nexecvp(cmds[i][0], cmds[i]);",
+            i: "2", infd: "fd[0] do Cano 2",
+            active: ["p-cano2", "n-wc", "p-flowtela", "n-tela"],
+            flow: ["p-cano2", "p-flowtela"],
+            highlight: ["n-wc"]
+        },
+        {
+            msg: "FIM (Espera): Pai fecha o último in_fd. O loop while(cmds[i]) acaba. O Pai senta e espera os três filhos terminarem com wait(). Sucesso!",
+            code: "if (in_fd != 0) close(in_fd);\n\nwhile (wait(&status) > 0)\n    if (!WIFEXITED(status) || WEXITSTATUS(status))\n        return 1;\nreturn 0;",
+            i: "3 (Loop encerrado)", infd: "Fechado",
+            active: ["n-tela"]
+        }
+    ];
+
+    let currentState = 0;
+
+    function renderState() {
+        const state = states[currentState];
+        
+        document.getElementById('step-counter').innerText = `Passo ${currentState + 1} de ${states.length}`;
+        document.getElementById('val-i').innerText = state.i;
+        document.getElementById('val-infd').innerText = state.infd;
+        document.getElementById('info-msg').innerText = state.msg;
+        document.getElementById('code-block').innerText = state.code;
+
+        document.querySelectorAll('.node, .pipe').forEach(el => {
+            el.classList.remove('active', 'flow', 'highlight');
+        });
+
+        if (state.active) {
+            state.active.forEach(id => document.getElementById(id)?.classList.add('active'));
+        }
+        if (state.flow) {
+            state.flow.forEach(id => document.getElementById(id)?.classList.add('flow'));
+        }
+        if (state.highlight) {
+            state.highlight.forEach(id => document.getElementById(id)?.classList.add('highlight'));
+        }
+
+        document.getElementById('btn-prev').disabled = currentState === 0;
+        document.getElementById('btn-next').disabled = currentState === states.length - 1;
+    }
+
+    function nextStep() {
+        if (currentState < states.length - 1) {
+            currentState++;
+            renderState();
+        }
+    }
+
+    function prevStep() {
+        if (currentState > 0) {
+            currentState--;
+            renderState();
+        }
+    }
+
+    window.onload = renderState;
+</script>
+
+</body>
+</html>

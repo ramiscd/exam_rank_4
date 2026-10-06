@@ -1,33 +1,60 @@
-#include <unistd.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/wait.h>
+#include <unistd.h>     // fork, execvp, pipe, dup2, close
+#include <sys/types.h>  // pid_t
+#include <sys/wait.h>   // wait, WIFEXITED, WEXITSTATUS
+#include <stdlib.h>     // exit
 
-// Agora recebemos argc e argv na main!
-int main(int argc, char **argv)
+int picoshell(char **cmds[])
 {
-    // Se o usuário não passou nenhum comando, encerra
-    if (argc < 2)
-        return (1);
+	int i = 0, in_fd = 0, fd[2], pid, status;
+	
+	while (cmds[i])
+	{
+		if (cmds[i + 1] && pipe(fd) < 0)
+			return 1;
+		if ((pid = fork()) < 0)
+			return 1;
+		if (pid == 0)
+		{
+			if (in_fd != 0)
+			{
+				dup2(in_fd, 0);
+				close(in_fd);
+			}
+			if (cmds[i + 1])
+			{
+				dup2(fd[1], 1);
+				close(fd[0]);
+				close(fd[1]);
+			}
+			execvp(cmds[i][0], cmds[i]);
+			exit(1);
+		}
+		if (in_fd != 0)
+			close(in_fd);
+		if (cmds[i + 1])
+		{
+			close(fd[1]);
+			in_fd = fd[0];
+		}
+		i++;
+	}
+	while (wait(&status) > 0)
+		if (!WIFEXITED(status) || WEXITSTATUS(status))
+			return 1;
+	return 0;
+}
 
-    pid_t pid = fork();
+#include <stdio.h>
+int main(void)
+{
+	write(1, "Test picoshell_short\n", 21);
+	// char *cmd1[] = {"/bin/ls", "level-1", NULL};
+	char *cmd1[] = {"/bin/ls", NULL};
+	char *cmd2[] = {"/usr/bin/grep", "picoshell", NULL};
+	char **cmds[] = {cmd1, cmd2, NULL};
 
-    if (pid == 0) // FILHO
-    {
-        // argv + 1 ignora o "./picoshell" e pega a partir de "/bin/ls"
-        // argv[1] é o caminho: "/bin/ls"
-        // &argv[1] é a lista: {"/bin/ls", "-l", NULL} (o próprio terminal já coloca NULL no fim de argv!)
-        execve(argv[1], &argv[1], NULL);
+	int result = picoshell(cmds);
+	printf("picoshell returned %d\n", result);
 
-        // Se o execve falhar (ex: caminho errado), ele executa o perror
-        perror("Erro ao executar comando");
-        return (1);
-    }
-    else // PAI
-    {
-        int status;
-        // O pai espera especificamente o filho (pid) terminar antes de fechar
-        waitpid(pid, &status, 0);
-    }
-    return (0);
+	return 0;
 }
