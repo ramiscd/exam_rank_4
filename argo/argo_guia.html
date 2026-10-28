@@ -1,4 +1,5 @@
 <title>Guia do Argo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
@@ -113,7 +114,7 @@ td code { white-space: nowrap; }
 .pill.bad { background: var(--err-soft); color: var(--err); }
 
 .diagram { overflow-x: auto; margin: 16px 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-.diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+.diagram svg { display: block; height: auto; margin: 0 auto; }
 .diagram svg text { font-family: var(--font-mono); }
 .cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
 
@@ -148,6 +149,21 @@ button:disabled { opacity: .4; cursor: default; }
 .box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
 .box h4 { margin: 0 0 8px; font-family: var(--font-display); font-size: 16px; }
 .box ul { margin: 0; padding-left: 18px; }
+
+/* ── Responsividade mobile ────────────────────────── */
+@media (max-width: 860px) {
+  .wrap { padding-block: 20px 48px; }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  nav.toc .label { padding: 10px 14px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  nav.toc ol { padding: 0 14px 10px; }
+}
+@media (max-width: 520px) {
+  h2 { font-size: clamp(20px, 5.5vw, 28px); }
+  h3 { font-size: 17px; }
+  pre { font-size: 12px; padding: 12px 14px; }
+  .tracer { padding: 12px; }
+  .msg { font-size: 13px; }
+}
 </style>
 
 <div class="wrap">
@@ -817,5 +833,42 @@ try { if (window.hljs) { hljs.configure({ ignoreUnescapedHTML: true }); hljs.hig
   document.getElementById('next').addEventListener('click', function () { if (i < steps.length - 1) { i++; render(); } });
   document.getElementById('reset').addEventListener('click', function () { i = 0; render(); });
   render();
+})();
+</script>
+
+<script>
+(function () {
+  function initToc() {
+    if (window.innerWidth > 860) return;
+    var toc = document.querySelector('nav.toc');
+    if (!toc) return;
+    var ol = toc.querySelector('ol');
+    var label = toc.querySelector('.label');
+    if (!ol || !label) return;
+    var arrow = document.createElement('span');
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = ' ▾';
+    arrow.style.cssText = 'display:inline-block;transition:transform .2s;margin-left:auto;flex-shrink:0;';
+    label.appendChild(arrow);
+    ol.style.display = 'none';
+    label.setAttribute('role', 'button');
+    label.setAttribute('aria-expanded', 'false');
+    label.setAttribute('tabindex', '0');
+    function toggle() {
+      var isOpen = ol.style.display !== 'none';
+      ol.style.display = isOpen ? 'none' : '';
+      label.setAttribute('aria-expanded', String(!isOpen));
+      arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+    label.addEventListener('click', toggle);
+    label.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToc);
+  } else {
+    initToc();
+  }
 })();
 </script>
