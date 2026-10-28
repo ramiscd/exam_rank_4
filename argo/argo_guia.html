@@ -1,0 +1,874 @@
+<title>Guia do Argo</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: índice fixo à esquerda no desktop + coluna de leitura; uma coluna no celular.
+   Cores dos três tipos do enum (MAP / INTEGER / STRING) são usadas em todos os diagramas. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1b2230;
+  --muted: #5b6577;
+  --line: #d9dee7;
+  --accent: #3b4fd8;
+  --code-bg: #eef1f6;
+  --map: #2f6fde;
+  --map-soft: #e3ecfc;
+  --int: #b9650c;
+  --int-soft: #fbeedd;
+  --str: #1d8a5a;
+  --str-soft: #dcf3e8;
+  --err: #c2352b;
+  --err-soft: #fbe3e1;
+  --kw: #8a3fd1;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151d; --surface: #181d27; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343;
+    --accent: #8b9bff; --code-bg: #1e2431;
+    --map: #7aa7ff; --map-soft: #1d2a47; --int: #f0a75a; --int-soft: #3a2a17;
+    --str: #5fd29e; --str-soft: #16352a; --err: #ff8378; --err-soft: #3d1d1b; --kw: #c99bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151d; --surface: #181d27; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343;
+  --accent: #8b9bff; --code-bg: #1e2431;
+  --map: #7aa7ff; --map-soft: #1d2a47; --int: #f0a75a; --int-soft: #3a2a17;
+  --str: #5fd29e; --str-soft: #16352a; --err: #ff8378; --err-soft: #3d1d1b; --kw: #c99bff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px;
+}
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; } nav.toc { position: static !important; } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc .label { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); font-weight: 600; }
+nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; counter-reset: s; }
+nav.toc li { counter-increment: s; }
+nav.toc a { color: var(--fg); text-decoration: none; display: flex; gap: 8px; padding: 3px 0; }
+nav.toc a::before { content: counter(s); font-family: var(--font-mono); color: var(--muted); width: 18px; flex: none; }
+nav.toc a:hover { color: var(--accent); }
+
+main { min-width: 0; }
+main > section { padding-top: 24px; margin-top: 32px; border-top: 1px solid var(--line); }
+main > section:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(34px, 6vw, 52px); font-weight: 800; margin: 0 0 12px; letter-spacing: -.02em; }
+h2 { font-size: 28px; font-weight: 800; margin: 0 0 12px; letter-spacing: -.01em; }
+h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 600; color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+pre {
+  font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55;
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px 18px; overflow-x: auto; margin: 12px 0 20px; tab-size: 4;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+.hljs-keyword, .hljs-built_in, .hljs-type { color: var(--kw); }
+.hljs-string { color: var(--str); }
+.hljs-number { color: var(--int); }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-title, .hljs-title.function_ { color: var(--map); }
+.hljs-meta { color: var(--muted); }
+
+.t-map { color: var(--map); font-weight: 600; }
+.t-int { color: var(--int); font-weight: 600; }
+.t-str { color: var(--str); font-weight: 600; }
+
+.note { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.note.warn { border-left-color: var(--err); }
+.note p { margin: 4px 0; }
+.note strong:first-child { display: block; font-family: var(--font-display); font-size: 15px; }
+
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td code { white-space: nowrap; }
+
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+.pill.given { background: var(--code-bg); color: var(--muted); }
+.pill.you { background: var(--map-soft); color: var(--map); }
+.pill.ok { background: var(--str-soft); color: var(--str); }
+.pill.bad { background: var(--err-soft); color: var(--err); }
+
+.diagram { overflow-x: auto; margin: 16px 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.diagram svg { display: block; height: auto; margin: 0 auto; }
+.diagram svg text { font-family: var(--font-mono); }
+.cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.checklist { list-style: none; padding: 0; display: grid; gap: 8px; }
+.checklist li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.checklist li::before { content: "☐"; font-size: 18px; line-height: 1.4; color: var(--accent); }
+
+/* tracer */
+.tracer { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 16px 0; }
+.tape { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 14px; }
+.cell { font-family: var(--font-mono); width: 32px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; font-size: 16px; position: relative; background: var(--bg); }
+.cell .i { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+.cell.read { color: var(--muted); opacity: .5; }
+.cell.cur { border: 2px solid var(--accent); background: var(--map-soft); font-weight: 600; }
+.trace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 22px; }
+@media (max-width: 640px) { .trace-grid { grid-template-columns: minmax(0, 1fr); } }
+.trace-grid h4 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stack { display: flex; flex-direction: column-reverse; gap: 4px; }
+.frame { font-family: var(--font-mono); font-size: 13px; padding: 4px 10px; border-radius: 5px; background: var(--code-bg); border: 1px solid var(--line); }
+.frame:last-child { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.ast { font-family: var(--font-mono); font-size: 13px; white-space: pre; background: var(--code-bg); border-radius: 6px; padding: 10px; overflow-x: auto; min-height: 90px; margin: 0; }
+.msg { margin: 14px 0 0; padding: 10px 14px; border-radius: 6px; background: var(--bg); border: 1px dashed var(--line); min-height: 48px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+button { font: 600 14px var(--font-body); padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+.step-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.box h4 { margin: 0 0 8px; font-family: var(--font-display); font-size: 16px; }
+.box ul { margin: 0; padding-left: 18px; }
+
+/* ── Responsividade mobile ────────────────────────── */
+@media (max-width: 860px) {
+  .wrap { padding-block: 20px 48px; }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  nav.toc .label { padding: 10px 14px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  nav.toc ol { padding: 0 14px 10px; }
+}
+@media (max-width: 520px) {
+  h2 { font-size: clamp(20px, 5.5vw, 28px); }
+  h3 { font-size: 17px; }
+  pre { font-size: 12px; padding: 12px 14px; }
+  .tracer { padding: 12px; }
+  .msg { font-size: 13px; }
+}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Seções">
+  <div class="label">Argo · Exam Rank 04</div>
+  <ol>
+    <li><a href="#visao">Visão geral</a></li>
+    <li><a href="#given">O que você recebe</a></li>
+    <li><a href="#struct">A struct json</a></li>
+    <li><a href="#stream">Lendo o stream</a></li>
+    <li><a href="#gramatica">A gramática</a></li>
+    <li><a href="#funcoes">As 5 funções</a></li>
+    <li><a href="#trace">Execução passo a passo</a></li>
+    <li><a href="#erros">Erros</a></li>
+    <li><a href="#armadilhas">Armadilhas da referência</a></li>
+    <li><a href="#final">Arquivo final e testes</a></li>
+    <li><a href="#prova">Como treinar</a></li>
+  </ol>
+</nav>
+
+<main>
+<section id="visao">
+  <div class="eyebrow">Exam Rank 04 · argo</div>
+  <h1>Guia do Argo</h1>
+  <p class="lead">O argo é um parser de JSON bem pequeno. Ele lê um arquivo caractere por caractere, monta uma árvore em memória e o <code>main</code> que já vem pronto imprime essa árvore de volta. Se a saída for igual à entrada, o seu parser funciona.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 760 170" width="760" role="img" aria-label="Fluxo: arquivo JSON, função argo, árvore json, serialize, saída">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <rect x="10" y="40" width="150" height="70" rx="8" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="85" y="68" text-anchor="middle" font-size="12" fill="var(--muted)">FILE *stream</text>
+      <text x="85" y="92" text-anchor="middle" font-size="13" fill="var(--fg)">{"a":42}</text>
+      <line x1="160" y1="75" x2="215" y2="75" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <rect x="218" y="30" width="150" height="90" rx="8" fill="var(--map-soft)" stroke="var(--map)" stroke-width="2"/>
+      <text x="293" y="66" text-anchor="middle" font-size="15" font-weight="600" fill="var(--map)">argo()</text>
+      <text x="293" y="88" text-anchor="middle" font-size="11" fill="var(--map)">VOCÊ ESCREVE</text>
+      <line x1="368" y1="75" x2="423" y2="75" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <rect x="426" y="20" width="150" height="110" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+      <text x="501" y="44" text-anchor="middle" font-size="12" fill="var(--muted)">json (AST)</text>
+      <rect x="456" y="54" width="90" height="24" rx="4" fill="var(--map-soft)"/>
+      <text x="501" y="71" text-anchor="middle" font-size="12" fill="var(--map)">MAP</text>
+      <line x1="501" y1="78" x2="501" y2="92" stroke="var(--muted)"/>
+      <rect x="446" y="92" width="110" height="24" rx="4" fill="var(--int-soft)"/>
+      <text x="501" y="109" text-anchor="middle" font-size="12" fill="var(--int)">"a" → INT 42</text>
+      <line x1="576" y1="75" x2="631" y2="75" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <rect x="634" y="40" width="116" height="70" rx="8" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="692" y="68" text-anchor="middle" font-size="12" fill="var(--muted)">serialize()</text>
+      <text x="692" y="92" text-anchor="middle" font-size="13" fill="var(--fg)">{"a":42}</text>
+      <text x="293" y="150" text-anchor="middle" font-size="11" fill="var(--muted)">retorna 1 ou -1</text>
+      <text x="692" y="150" text-anchor="middle" font-size="11" fill="var(--muted)">já vem pronto</text>
+    </svg>
+  </div>
+
+  <h3>Você terminou o projeto quando…</h3>
+  <p>…conseguir escrever estas cinco funções de memória e elas passarem nos testes. Todo o resto do arquivo vem pronto no <code>given.c</code>.</p>
+  <ul class="checklist">
+    <li><span><code>argo(dst, stream)</code>: chama o <code>parser</code> e devolve <code>1</code> ou <code>-1</code>.</span></li>
+    <li><span><code>parser(dst, stream)</code>: olha o próximo caractere e decide se vem um número, uma string ou um mapa.</span></li>
+    <li><span><code>parse_int(dst, stream)</code>: lê um inteiro com <code>fscanf("%d")</code>.</span></li>
+    <li><span><code>get_str(stream)</code>: lê uma string entre aspas e trata <code>\"</code> e <code>\\</code>.</span></li>
+    <li><span><code>parse_map(dst, stream)</code>: lê <code>{ "chave":valor, … }</code> e chama <code>parser</code> de novo para cada valor. Essa é a recursão.</span></li>
+  </ul>
+</section>
+
+<section id="given">
+  <h2>O que você recebe e o que você entrega</h2>
+  <p>O <code>given.c</code> já tem as structs, quatro funções auxiliares de leitura, o <code>free_json</code>, o <code>serialize</code> e o <code>main</code>. O <code>argo.c</code> que você entrega é <strong>o given.c inteiro com as suas funções coladas antes do <code>main</code></strong>.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Origem</th><th>Para que serve</th></tr></thead>
+    <tbody>
+      <tr><td><code>struct json</code>, <code>struct pair</code></td><td><span class="pill given">given</span></td><td>A árvore que você monta.</td></tr>
+      <tr><td><code>peek</code></td><td><span class="pill given">given</span></td><td>Olha o próximo caractere sem consumir.</td></tr>
+      <tr><td><code>accept</code></td><td><span class="pill given">given</span></td><td>Consome o caractere só se for o esperado. Não imprime erro.</td></tr>
+      <tr><td><code>expect</code></td><td><span class="pill given">given</span></td><td>Igual ao <code>accept</code>, mas imprime o erro se não for o esperado.</td></tr>
+      <tr><td><code>unexpected</code></td><td><span class="pill given">given</span></td><td>Imprime <code>unexpected token 'x'</code> ou <code>unexpected end of input</code>.</td></tr>
+      <tr><td><code>free_json</code></td><td><span class="pill given">given</span></td><td>Libera a árvore. O <code>main</code> chama quando <code>argo</code> falha.</td></tr>
+      <tr><td><code>serialize</code></td><td><span class="pill given">given</span></td><td>Imprime a árvore de volta em JSON (recoloca a <code>\</code> antes de <code>"</code> e <code>\</code>).</td></tr>
+      <tr><td><code>main</code></td><td><span class="pill given">given</span></td><td>Abre o arquivo, chama <code>argo</code>, imprime ou libera.</td></tr>
+      <tr><td><code>argo</code>, <code>parser</code>, <code>parse_int</code>, <code>get_str</code>, <code>parse_map</code></td><td><span class="pill you">você</span></td><td>O parser. Só <code>argo</code> é exigido pelo nome, os outros nomes são escolha sua.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <strong>Use o <code>unexpected()</code> do given, não reescreva a mensagem</strong>
+    <p>O subject escreve <code>"Unexpected token"</code> com U maiúsculo, mas os exemplos e o código dado usam minúsculo. A saída é comparada com a do código de referência, então chamar <code>unexpected(stream)</code> sempre garante o texto certo.</p>
+  </div>
+  <p>Funções permitidas: <code>getc, ungetc, printf, malloc, calloc, realloc, free, isdigit, fscanf, write</code>.</p>
+</section>
+
+<section id="struct">
+  <h2>A struct <code>json</code>: um tipo, três formas</h2>
+  <p>Todo valor JSON vira um <code>json</code>. O campo <code>type</code> diz qual dos três ele é, e a <code>union</code> guarda o dado correspondente. Numa union os campos dividem a mesma memória, então só o campo que combina com <code>type</code> tem conteúdo válido.</p>
+<pre><code class="language-c">typedef struct json {
+	enum { MAP, INTEGER, STRING } type;   // qual "forma" este valor tem
+	union {
+		struct {
+			struct pair *data;   // array de pares chave/valor
+			size_t       size;   // quantos pares
+		} map;                   // usado quando type == MAP
+		int   integer;           // usado quando type == INTEGER
+		char *string;            // usado quando type == STRING
+	};
+} json;
+
+typedef struct pair {
+	char *key;    // a chave é sempre uma string
+	json  value;  // o valor é outro json (aqui entra a recursão)
+} pair;</code></pre>
+
+  <div class="diagram">
+    <svg viewBox="0 0 720 230" width="720" role="img" aria-label="Três formas de json: INTEGER guarda int, STRING guarda char*, MAP guarda array de pair">
+      <g>
+        <rect x="10" y="20" width="200" height="34" rx="6" fill="var(--int-soft)" stroke="var(--int)"/>
+        <text x="110" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="var(--int)">type = INTEGER</text>
+        <rect x="10" y="60" width="200" height="34" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="110" y="82" text-anchor="middle" font-size="13" fill="var(--fg)">integer = 42</text>
+        <text x="110" y="120" text-anchor="middle" font-size="12" fill="var(--muted)">entrada: 42</text>
+      </g>
+      <g>
+        <rect x="260" y="20" width="200" height="34" rx="6" fill="var(--str-soft)" stroke="var(--str)"/>
+        <text x="360" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="var(--str)">type = STRING</text>
+        <rect x="260" y="60" width="200" height="34" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="360" y="82" text-anchor="middle" font-size="13" fill="var(--fg)">string ──▶ "oi"\0</text>
+        <text x="360" y="120" text-anchor="middle" font-size="12" fill="var(--muted)">entrada: "oi"</text>
+      </g>
+      <g>
+        <rect x="510" y="20" width="200" height="34" rx="6" fill="var(--map-soft)" stroke="var(--map)"/>
+        <text x="610" y="42" text-anchor="middle" font-size="13" font-weight="600" fill="var(--map)">type = MAP</text>
+        <rect x="510" y="60" width="200" height="34" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="610" y="82" text-anchor="middle" font-size="13" fill="var(--fg)">map.size = 2, map.data ▼</text>
+        <rect x="510" y="110" width="98" height="50" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="559" y="130" text-anchor="middle" font-size="11" fill="var(--muted)">data[0]</text>
+        <text x="559" y="149" text-anchor="middle" font-size="12" fill="var(--fg)">"a" : <tspan fill="var(--int)">1</tspan></text>
+        <rect x="612" y="110" width="98" height="50" rx="6" fill="var(--surface)" stroke="var(--line)"/>
+        <text x="661" y="130" text-anchor="middle" font-size="11" fill="var(--muted)">data[1]</text>
+        <text x="661" y="149" text-anchor="middle" font-size="12" fill="var(--fg)">"b" : <tspan fill="var(--str)">"x"</tspan></text>
+        <text x="610" y="190" text-anchor="middle" font-size="12" fill="var(--muted)">entrada: {"a":1,"b":"x"}</text>
+      </g>
+    </svg>
+  </div>
+
+  <h3>Exemplo: a árvore de <code>{"tomatoes":42,"potatoes":234}</code></h3>
+<pre><code class="language-plaintext">json  type=MAP  size=2
+├── data[0]  key="tomatoes"  value: json type=INTEGER integer=42
+└── data[1]  key="potatoes"  value: json type=INTEGER integer=234</code></pre>
+  <h3>E de <code>{"recursion":{"recursion":"recursion"}}</code></h3>
+<pre><code class="language-plaintext">json  type=MAP  size=1
+└── data[0]  key="recursion"
+             value: json type=MAP size=1          ← um mapa dentro de um pair
+                    └── data[0] key="recursion"
+                                value: json type=STRING string="recursion"</code></pre>
+  <p>Como <code>pair.value</code> é um <code>json</code>, um mapa pode conter outro mapa sem limite de profundidade. Por isso o <code>parse_map</code> chama o <code>parser</code> para ler cada valor.</p>
+</section>
+
+<section id="stream">
+  <h2>Lendo o stream: um cursor que só anda para frente</h2>
+  <p>Pense no arquivo como uma fita. <code>getc</code> lê o caractere do cursor e avança. <code>ungetc</code> devolve um caractere. As funções do given montam três operações em cima disso:</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 700 250" width="700" role="img" aria-label="peek olha sem avançar, accept avança só se combinar, expect avança ou imprime erro">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--accent)"/></marker></defs>
+      <g font-size="15">
+        <rect x="20" y="20" width="36" height="36" rx="4" fill="var(--code-bg)" stroke="var(--line)"/><text x="38" y="44" text-anchor="middle" fill="var(--muted)">{</text>
+        <rect x="58" y="20" width="36" height="36" rx="4" fill="var(--map-soft)" stroke="var(--accent)" stroke-width="2"/><text x="76" y="44" text-anchor="middle" fill="var(--fg)">"</text>
+        <rect x="96" y="20" width="36" height="36" rx="4" fill="var(--surface)" stroke="var(--line)"/><text x="114" y="44" text-anchor="middle" fill="var(--fg)">a</text>
+        <rect x="134" y="20" width="36" height="36" rx="4" fill="var(--surface)" stroke="var(--line)"/><text x="152" y="44" text-anchor="middle" fill="var(--fg)">"</text>
+        <rect x="172" y="20" width="36" height="36" rx="4" fill="var(--surface)" stroke="var(--line)"/><text x="190" y="44" text-anchor="middle" fill="var(--fg)">:</text>
+        <text x="76" y="78" text-anchor="middle" font-size="11" fill="var(--accent)">▲ cursor</text>
+      </g>
+      <g font-size="13">
+        <text x="250" y="34" fill="var(--fg)" font-weight="600">peek(s)</text>
+        <text x="370" y="34" fill="var(--muted)">→ devolve '"', cursor fica parado</text>
+        <text x="250" y="66" fill="var(--fg)" font-weight="600">accept(s, '"')</text>
+        <text x="370" y="66" fill="var(--muted)">→ é '"': consome, devolve 1</text>
+        <text x="250" y="98" fill="var(--fg)" font-weight="600">accept(s, '}')</text>
+        <text x="370" y="98" fill="var(--muted)">→ não é '}': nada muda, devolve 0</text>
+        <text x="250" y="130" fill="var(--fg)" font-weight="600">expect(s, ':')</text>
+        <text x="370" y="130" fill="var(--err)">→ não é ':': imprime erro, devolve 0</text>
+      </g>
+      <line x1="20" y1="170" x2="680" y2="170" stroke="var(--line)"/>
+      <text x="20" y="200" font-size="13" fill="var(--fg)" font-weight="600">Regra prática</text>
+      <text x="20" y="224" font-size="13" fill="var(--muted)">peek para decidir · accept quando há mais de um caminho válido · expect quando só um caractere é aceitável</text>
+    </svg>
+  </div>
+
+<pre><code class="language-c">int peek(FILE *stream)            // olha sem consumir
+{
+	int c = getc(stream);
+	ungetc(c, stream);
+	return c;
+}
+
+void unexpected(FILE *stream)     // imprime o erro com base no próximo caractere
+{
+	if (peek(stream) != EOF)
+		printf("unexpected token '%c'\n", peek(stream));
+	else
+		printf("unexpected end of input\n");
+}
+
+int accept(FILE *stream, char c)  // consome se for c (sem erro)
+{
+	if (peek(stream) == c)
+	{
+		(void)getc(stream);
+		return 1;
+	}
+	return 0;
+}
+
+int expect(FILE *stream, char c)  // consome se for c, senão imprime erro
+{
+	if (accept(stream, c))
+		return 1;
+	unexpected(stream);
+	return 0;
+}</code></pre>
+  <div class="note">
+    <strong>Detalhe importante do <code>unexpected</code></strong>
+    <p>Ele imprime o caractere <em>que ainda não foi lido</em>. Por isso, ao achar um erro, chame <code>unexpected</code> <strong>antes</strong> de consumir o caractere problemático. Se você já consumiu com <code>getc</code>, a mensagem vai mostrar o caractere seguinte.</p>
+  </div>
+</section>
+
+<section id="gramatica">
+  <h2>A gramática: o que é um valor válido</h2>
+  <p>O subject pede só três tipos e proíbe espaços. A gramática inteira cabe em quatro linhas:</p>
+<pre><code class="language-plaintext">valor  :=  inteiro  |  string  |  mapa
+inteiro:=  o que scanf("%d") aceita      ex: 42   -7
+string :=  '"'  { caractere | '\"' | '\\' }  '"'
+mapa   :=  '{'  '}'
+        |  '{'  string ':' valor  { ',' string ':' valor }  '}'</code></pre>
+  <p>O primeiro caractere decide o tipo. Essa é a função do <code>parser</code>:</p>
+  <div class="diagram">
+    <svg viewBox="0 0 680 240" width="680" role="img" aria-label="parser decide pelo primeiro caractere: dígito ou menos vai para parse_int, aspas para get_str, chave para parse_map, outro é erro">
+      <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <rect x="20" y="95" width="140" height="50" rx="8" fill="var(--surface)" stroke="var(--fg)" stroke-width="1.5"/>
+      <text x="90" y="116" text-anchor="middle" font-size="14" font-weight="600" fill="var(--fg)">parser</text>
+      <text x="90" y="134" text-anchor="middle" font-size="11" fill="var(--muted)">c = peek(stream)</text>
+      <path d="M160,120 C220,120 220,30 290,30" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar3)"/>
+      <path d="M160,120 C220,120 220,90 290,90" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar3)"/>
+      <path d="M160,120 C220,120 220,150 290,150" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar3)"/>
+      <path d="M160,120 C220,120 220,210 290,210" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar3)"/>
+      <text x="218" y="22" font-size="11" fill="var(--muted)">0-9 ou -</text>
+      <text x="232" y="84" font-size="11" fill="var(--muted)">"</text>
+      <text x="232" y="146" font-size="11" fill="var(--muted)">{</text>
+      <text x="214" y="222" font-size="11" fill="var(--muted)">outro / EOF</text>
+      <rect x="294" y="10" width="160" height="40" rx="6" fill="var(--int-soft)" stroke="var(--int)"/>
+      <text x="374" y="35" text-anchor="middle" font-size="13" fill="var(--int)">parse_int</text>
+      <rect x="294" y="70" width="160" height="40" rx="6" fill="var(--str-soft)" stroke="var(--str)"/>
+      <text x="374" y="95" text-anchor="middle" font-size="13" fill="var(--str)">get_str</text>
+      <rect x="294" y="130" width="160" height="40" rx="6" fill="var(--map-soft)" stroke="var(--map)"/>
+      <text x="374" y="155" text-anchor="middle" font-size="13" fill="var(--map)">parse_map</text>
+      <rect x="294" y="190" width="160" height="40" rx="6" fill="var(--err-soft)" stroke="var(--err)"/>
+      <text x="374" y="215" text-anchor="middle" font-size="13" fill="var(--err)">unexpected → -1</text>
+      <path d="M454,150 C560,150 560,120 170,120" fill="none" stroke="var(--map)" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#ar3)"/>
+      <text x="570" y="118" font-size="11" fill="var(--map)">para cada valor</text>
+      <text x="570" y="134" font-size="11" fill="var(--map)">do mapa: recursão</text>
+      <path d="M454,150 C500,150 500,95 458,95" fill="none" stroke="var(--str)" stroke-width="1.2" marker-end="url(#ar3)"/>
+      <text x="478" y="80" font-size="10" fill="var(--str)">chaves</text>
+    </svg>
+  </div>
+</section>
+
+<section id="funcoes">
+  <h2>As 5 funções, uma por vez</h2>
+  <p>Escreva nesta ordem, da mais simples para a mais complexa. A cada uma, você consegue testar mais casos.</p>
+
+  <h3>1. <code>argo</code>: a porta de entrada</h3>
+  <p>Só repassa para o <code>parser</code> e converte o resultado para o formato do subject (<code>1</code> sucesso, <code>-1</code> falha).</p>
+<pre><code class="language-c">int	argo(json *dst, FILE *stream)
+{
+	if (parser(dst, stream) == -1)
+		return (-1);
+	return (1);
+}</code></pre>
+
+  <h3>2. <code>parser</code>: decide o tipo pelo primeiro caractere</h3>
+<pre><code class="language-c">int	parser(json *dst, FILE *stream)
+{
+	int	c = peek(stream);          // int, não char: precisa caber EOF
+
+	dst->type = INTEGER;           // valor "seguro": se der erro, free_json não lê lixo
+	if (isdigit(c) || c == '-')    // número (scanf("%d") aceita negativo)
+		return (parse_int(dst, stream));
+	if (c == '"')                  // string
+	{
+		dst->type = STRING;
+		dst->string = get_str(stream);
+		if (dst->string == NULL)
+			return (-1);
+		return (1);
+	}
+	if (c == '{')                  // mapa
+		return (parse_map(dst, stream));
+	unexpected(stream);            // qualquer outra coisa, inclusive EOF e espaço
+	return (-1);
+}</code></pre>
+  <div class="note">
+    <strong>Por que <code>dst->type = INTEGER</code> logo no começo?</strong>
+    <p>Quando <code>argo</code> falha, o <code>main</code> chama <code>free_json(file)</code>. Se o erro acontecer antes de você preencher <code>type</code>, o <code>free_json</code> vai ler memória não inicializada e pode tentar dar <code>free</code> num ponteiro aleatório. Com <code>INTEGER</code>, o <code>free_json</code> não faz nada. Uma linha resolve.</p>
+  </div>
+
+  <h3>3. <code>parse_int</code>: deixe o <code>fscanf</code> trabalhar</h3>
+<pre><code class="language-c">int	parse_int(json *dst, FILE *stream)
+{
+	int	n;
+
+	if (fscanf(stream, "%d", &n) != 1)   // ex: "-" sozinho ou "-x"
+	{
+		unexpected(stream);
+		return (-1);
+	}
+	dst->type = INTEGER;
+	dst->integer = n;
+	return (1);
+}</code></pre>
+  <p><code>fscanf</code> lê todos os dígitos seguidos e para no primeiro caractere que não é dígito, sem consumi-lo. Em <code>42,</code> ele lê <code>42</code> e deixa a <code>,</code> para o <code>parse_map</code>.</p>
+
+  <h3>4. <code>get_str</code>: string com escape</h3>
+  <p>Consome a aspa de abertura e copia caracteres até a aspa de fechamento. Se aparecer <code>\</code>, pula a barra e copia o próximo caractere literalmente, seja ele <code>"</code> ou <code>\</code>. Se o arquivo acabar antes da aspa de fechamento, é erro.</p>
+<pre><code class="language-c">char	*get_str(FILE *stream)
+{
+	char	*res = calloc(4096, sizeof(char));   // calloc já deixa o '\0' no final
+	int		i = 0;
+	int		c;                                   // int para comparar com EOF
+
+	getc(stream);                   // consome a aspa de abertura
+	while (1)
+	{
+		c = getc(stream);
+		if (c == '"')               // aspa sem barra antes: fim da string
+			break ;
+		if (c == '\\')              // barra: o próximo caractere é literal
+			c = getc(stream);
+		if (c == EOF)               // acabou o arquivo no meio da string
+		{
+			free(res);
+			unexpected(stream);     // imprime "unexpected end of input"
+			return (NULL);
+		}
+		res[i++] = c;
+	}
+	return (res);
+}</code></pre>
+  <div class="two">
+    <div class="box"><h4>Entrada <code>"escape! \" "</code></h4>
+      <ul><li><code>"</code> abertura, consumida</li><li><code>escape! </code> copiado</li><li><code>\</code> vê a barra e lê o próximo: <code>"</code> é copiado</li><li><code> </code> copiado</li><li><code>"</code> fim</li></ul>
+      <p class="cap">Na memória fica <code>escape! " </code>. O <code>serialize</code> recoloca a barra na hora de imprimir.</p></div>
+    <div class="box"><h4>Entrada <code>"unfinished string 2\"</code></h4>
+      <ul><li>copia <code>unfinished string 2</code></li><li><code>\</code> lê o próximo: <code>"</code> é copiado, <strong>não</strong> fecha</li><li><code>getc</code> devolve EOF</li><li>imprime <code>unexpected end of input</code></li></ul>
+      <p class="cap">A aspa escapada não termina a string. É exatamente isso que esse teste verifica.</p></div>
+  </div>
+
+  <h3>5. <code>parse_map</code>: o laço com recursão</h3>
+  <p>O mapa é um laço de "chave <code>:</code> valor", separado por <code>,</code> e terminado por <code>}</code>. Para o valor, chame o <code>parser</code>: é ele que permite um mapa dentro de outro.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 700 150" width="700" role="img" aria-label="Laço do parse_map: consome chave, espera dois pontos, parser no valor, depois vírgula volta ao começo ou chave fecha">
+      <defs><marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <g font-size="13">
+        <rect x="10" y="50" width="50" height="36" rx="6" fill="var(--map-soft)" stroke="var(--map)"/><text x="35" y="73" text-anchor="middle" fill="var(--map)">{</text>
+        <line x1="60" y1="68" x2="98" y2="68" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar4)"/>
+        <rect x="100" y="50" width="120" height="36" rx="6" fill="var(--str-soft)" stroke="var(--str)"/><text x="160" y="73" text-anchor="middle" fill="var(--str)">get_str (chave)</text>
+        <line x1="220" y1="68" x2="258" y2="68" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar4)"/>
+        <rect x="260" y="50" width="90" height="36" rx="6" fill="var(--surface)" stroke="var(--line)"/><text x="305" y="73" text-anchor="middle" fill="var(--fg)">expect ':'</text>
+        <line x1="350" y1="68" x2="388" y2="68" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar4)"/>
+        <rect x="390" y="50" width="120" height="36" rx="6" fill="var(--surface)" stroke="var(--fg)"/><text x="450" y="73" text-anchor="middle" fill="var(--fg)">parser (valor)</text>
+        <line x1="510" y1="68" x2="548" y2="68" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar4)"/>
+        <rect x="550" y="50" width="50" height="36" rx="6" fill="var(--map-soft)" stroke="var(--map)"/><text x="575" y="73" text-anchor="middle" fill="var(--map)">}</text>
+        <text x="620" y="73" fill="var(--muted)">return 1</text>
+        <path d="M530,68 C530,130 160,130 160,90" fill="none" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar4)"/>
+        <text x="345" y="140" text-anchor="middle" fill="var(--muted)">',' → próximo par</text>
+        <path d="M35,50 C35,10 575,10 575,48" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="4 4" marker-end="url(#ar4)"/>
+        <text x="305" y="22" text-anchor="middle" fill="var(--muted)">{} vazio: accept('}') logo depois do '{'</text>
+      </g>
+    </svg>
+  </div>
+<pre><code class="language-c">int	parse_map(json *dst, FILE *stream)
+{
+	pair	*cur;
+
+	dst->type = MAP;
+	dst->map.size = 0;
+	dst->map.data = NULL;
+	getc(stream);                       // consome '{'
+	if (accept(stream, '}'))            // mapa vazio: {}
+		return (1);
+	while (1)
+	{
+		if (peek(stream) != '"')        // chave tem que ser string
+		{
+			unexpected(stream);
+			return (-1);
+		}
+		// aumenta o array em 1 pair
+		dst->map.data = realloc(dst->map.data, (dst->map.size + 1) * sizeof(pair));
+		cur = &dst->map.data[dst->map.size];
+		cur->key = get_str(stream);
+		if (cur->key == NULL)
+			return (-1);
+		dst->map.size++;                // só conta o par depois que a chave existe
+		if (!expect(stream, ':'))
+			return (-1);
+		if (parser(&cur->value, stream) == -1)   // RECURSÃO
+			return (-1);
+		if (accept(stream, '}'))        // fim do mapa
+			return (1);
+		if (!expect(stream, ','))       // senão tem que ter vírgula
+			return (-1);
+	}
+}</code></pre>
+  <div class="note">
+    <strong>Por que <code>size++</code> fica entre a chave e o valor</strong>
+    <p>O <code>free_json</code> libera <code>data[0]</code> até <code>data[size-1]</code>. Se a chave falhar, o par não é contado e nada inválido é liberado. Se o valor falhar, o par é contado, e o <code>parser</code> já colocou um <code>type</code> válido no valor, então o <code>free_json</code> libera tudo sem leak e sem crash.</p>
+  </div>
+</section>
+
+<section id="trace">
+  <h2>Execução passo a passo</h2>
+  <p>Avance pelos passos para ver o cursor andar na entrada <code>{"a":{"b":1}}</code>, a pilha de chamadas crescer na recursão e a árvore ser montada.</p>
+  <div class="tracer" id="tracer">
+    <div class="tape" id="tape" aria-label="Entrada"></div>
+    <div class="trace-grid">
+      <div><h4>Pilha de chamadas (topo em cima)</h4><div class="stack" id="stack"></div></div>
+      <div><h4>Árvore montada até agora</h4><pre class="ast" id="ast"></pre></div>
+    </div>
+    <p class="msg" id="msg" aria-live="polite"></p>
+    <div class="controls">
+      <button id="prev" type="button">← Anterior</button>
+      <button id="next" type="button" class="primary">Próximo →</button>
+      <button id="reset" type="button">Recomeçar</button>
+      <span class="step-count" id="count"></span>
+    </div>
+  </div>
+</section>
+
+<section id="erros">
+  <h2>Erros: onde cada um é detectado</h2>
+  <p>Assim que encontrar um erro, imprima com <code>unexpected</code> e devolva <code>-1</code> para cima, sem imprimir de novo. Cada erro é impresso uma única vez, pela função que o encontrou.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Entrada</th><th>Saída</th><th>Quem detecta</th></tr></thead>
+    <tbody>
+      <tr><td><code>"unfinished string</code></td><td><span class="pill bad">unexpected end of input</span></td><td><code>get_str</code>: <code>getc</code> devolveu EOF</td></tr>
+      <tr><td><code>"unfinished string 2\"</code></td><td><span class="pill bad">unexpected end of input</span></td><td><code>get_str</code>: a aspa escapada não fecha, depois vem EOF</td></tr>
+      <tr><td><code>{"no value?":}</code></td><td><span class="pill bad">unexpected token '}'</span></td><td><code>parser</code> do valor: <code>}</code> não começa nenhum tipo</td></tr>
+      <tr><td><code>{"a":1,}</code></td><td><span class="pill bad">unexpected token '}'</span></td><td><code>parse_map</code>: depois da vírgula esperava <code>"</code></td></tr>
+      <tr><td><code>{"a" :1}</code></td><td><span class="pill bad">unexpected token ' '</span></td><td><code>expect(':')</code>: espaço é inválido</td></tr>
+      <tr><td><code>{"a":1</code></td><td><span class="pill bad">unexpected end of input</span></td><td><code>expect(',')</code> no fim do <code>parse_map</code></td></tr>
+      <tr><td><code>{1:2}</code></td><td><span class="pill bad">unexpected token '1'</span></td><td><code>parse_map</code>: chave não começa com <code>"</code></td></tr>
+      <tr><td><em>(arquivo vazio)</em></td><td><span class="pill bad">unexpected end of input</span></td><td><code>parser</code>: <code>peek</code> devolveu EOF</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="armadilhas">
+  <h2>Armadilhas do <code>argo.c</code> de referência</h2>
+  <p>O <code>argo.c</code> da pasta de referência passa nos 8 testes do <code>tester.sh</code>, mas tem pontos frágeis. O código deste guia corrige cada um com uma mudança de uma ou duas linhas, sem deixar o código maior. Rodei as duas versões lado a lado no Linux (WSL) com <code>gcc -Wall -Wextra -Werror</code>:</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Entrada</th><th>Referência</th><th>Este guia</th><th>Causa e correção</th></tr></thead>
+    <tbody>
+      <tr><td>Os 8 testes do tester</td><td><span class="pill ok">passa</span></td><td><span class="pill ok">passa</span></td><td>Saída idêntica nos dois.</td></tr>
+      <tr><td><code>{"a":{},"b":1}</code></td><td><span class="pill bad">{"a":{}}</span></td><td><span class="pill ok">{"a":{},"b":1}</span></td><td>No <code>{}</code> a referência faz <code>peek</code> do <code>}</code> e retorna sem consumir. O mapa de fora pega esse <code>}</code> como se fosse o dele e para cedo. Correção: <code>accept(stream, '}')</code>.</td></tr>
+      <tr><td><code>-42</code></td><td><span class="pill bad">unexpected token '-'</span></td><td><span class="pill ok">-42</span></td><td>O subject diz "como <code>scanf("%d")</code>", que aceita negativo. Correção: <code>|| c == '-'</code> no <code>parser</code>.</td></tr>
+      <tr><td><code>x</code> ou arquivo vazio</td><td><span class="pill ok">erro certo</span>, mas <code>free_json</code> lê lixo</td><td><span class="pill ok">erro certo</span></td><td><code>file.type</code> nunca foi preenchido e o <code>main</code> chama <code>free_json(file)</code>. Funciona por sorte. Correção: <code>dst->type = INTEGER</code> no início do <code>parser</code>.</td></tr>
+      <tr><td>string com erro</td><td>leak de 4096 bytes</td><td>sem leak</td><td>A referência retorna <code>NULL</code> sem liberar <code>res</code>. Correção: <code>free(res)</code> antes do <code>return NULL</code>.</td></tr>
+      <tr><td>byte <code>0xFF</code> ou CPU ARM</td><td>pode travar</td><td>ok</td><td><code>char c = getc(...)</code> não guarda <code>EOF</code> de forma confiável. Correção: <code>int c</code>.</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <strong>Ponto em aberto: lixo depois do valor</strong>
+    <p>Nem a referência nem este guia reclamam de algo como <code>1x</code> ou <code>{}}</code>: o <code>parser</code> lê o primeiro valor e ignora o resto. O tester fornecido não testa isso. Se quiser ser mais rigoroso, dá para adicionar no <code>argo</code>, depois do <code>parser</code>: <code>if (peek(stream) != EOF) { unexpected(stream); return (-1); }</code>. A desvantagem é que um arquivo terminado em <code>\n</code> passaria a dar erro. Os exemplos do subject usam <code>echo -n</code>, então isso não quebraria nenhum deles, mas eu não tenho como confirmar qual comportamento a correção da prova espera.</p>
+  </div>
+  <div class="note warn">
+    <strong>Limite que continua existindo</strong>
+    <p>Strings maiores que 4095 caracteres estouram o buffer do <code>calloc(4096)</code>. A referência tem o mesmo limite e os testes usam strings curtas, então mantive o código simples. Se quiser eliminar o limite, troque por um buffer que cresce com <code>realloc</code>.</p>
+  </div>
+</section>
+
+<section id="final">
+  <h2>Arquivo final e como testar</h2>
+  <p>Monte o <code>argo.c</code> assim: copie o <code>given.c</code> inteiro e cole as funções abaixo <strong>logo antes do <code>main</code></strong>. A primeira linha é um protótipo, porque <code>parse_map</code> chama <code>parser</code> antes de ele estar definido.</p>
+<pre><code class="language-c">int	parser(json *dst, FILE *stream);
+
+int	parse_int(json *dst, FILE *stream)
+{
+	int	n;
+
+	if (fscanf(stream, "%d", &n) != 1)
+	{
+		unexpected(stream);
+		return (-1);
+	}
+	dst->type = INTEGER;
+	dst->integer = n;
+	return (1);
+}
+
+char	*get_str(FILE *stream)
+{
+	char	*res = calloc(4096, sizeof(char));
+	int		i = 0;
+	int		c;
+
+	getc(stream);
+	while (1)
+	{
+		c = getc(stream);
+		if (c == '"')
+			break ;
+		if (c == '\\')
+			c = getc(stream);
+		if (c == EOF)
+		{
+			free(res);
+			unexpected(stream);
+			return (NULL);
+		}
+		res[i++] = c;
+	}
+	return (res);
+}
+
+int	parse_map(json *dst, FILE *stream)
+{
+	pair	*cur;
+
+	dst->type = MAP;
+	dst->map.size = 0;
+	dst->map.data = NULL;
+	getc(stream);
+	if (accept(stream, '}'))
+		return (1);
+	while (1)
+	{
+		if (peek(stream) != '"')
+		{
+			unexpected(stream);
+			return (-1);
+		}
+		dst->map.data = realloc(dst->map.data, (dst->map.size + 1) * sizeof(pair));
+		cur = &dst->map.data[dst->map.size];
+		cur->key = get_str(stream);
+		if (cur->key == NULL)
+			return (-1);
+		dst->map.size++;
+		if (!expect(stream, ':'))
+			return (-1);
+		if (parser(&cur->value, stream) == -1)
+			return (-1);
+		if (accept(stream, '}'))
+			return (1);
+		if (!expect(stream, ','))
+			return (-1);
+	}
+}
+
+int	parser(json *dst, FILE *stream)
+{
+	int	c = peek(stream);
+
+	dst->type = INTEGER;
+	if (isdigit(c) || c == '-')
+		return (parse_int(dst, stream));
+	if (c == '"')
+	{
+		dst->type = STRING;
+		dst->string = get_str(stream);
+		if (dst->string == NULL)
+			return (-1);
+		return (1);
+	}
+	if (c == '{')
+		return (parse_map(dst, stream));
+	unexpected(stream);
+	return (-1);
+}
+
+int	argo(json *dst, FILE *stream)
+{
+	if (parser(dst, stream) == -1)
+		return (-1);
+	return (1);
+}</code></pre>
+
+  <h3>Testando no Linux ou WSL</h3>
+<pre><code class="language-bash">gcc -Wall -Wextra -Werror -o argo argo.c
+
+echo -n '1'                              | ./argo /dev/stdin | cat -e   # 1$
+echo -n '"escape! \" "'                  | ./argo /dev/stdin | cat -e   # "escape! \" "$
+echo -n '{"tomatoes":42,"potatoes":234}' | ./argo /dev/stdin | cat -e
+echo -n '{"a":{},"b":1}'                 | ./argo /dev/stdin | cat -e   # pega o bug do {}
+echo -n '"unfinished string 2\"'         | ./argo /dev/stdin | cat -e   # unexpected end of input$
+echo -n '{"no value?":}'                 | ./argo /dev/stdin | cat -e   # unexpected token '}'$</code></pre>
+  <p>O <code>tester.sh</code> da pasta de referência compara a sua versão com a referência, mas procura o seu arquivo em <code>../../../../rendu/argo/argo.c</code>. Para usar aqui, troque a variável <code>USR</code> pelo caminho do seu <code>argo.c</code>. Lembre que ele compara com a referência, então os casos <code>-42</code> e <code>{"a":{},"b":1}</code> não aparecem lá.</p>
+</section>
+
+<section id="prova">
+  <h2>Como treinar para escrever de memória</h2>
+  <ol>
+    <li><strong>Copie o given.c</strong> e escreva só <code>argo</code> + <code>parser</code> + <code>parse_int</code>. Teste com <code>1</code>, <code>-42</code> e <code>x</code>.</li>
+    <li><strong>Adicione <code>get_str</code></strong>. Teste <code>"bonjour"</code>, <code>"escape! \" "</code> e as duas strings sem fim.</li>
+    <li><strong>Adicione <code>parse_map</code></strong>. Teste <code>{}</code>, <code>{"tomatoes":42,"potatoes":234}</code>, a recursão e <code>{"a":{},"b":1}</code>.</li>
+    <li><strong>Teste os erros</strong> da tabela da seção 8.</li>
+    <li>Apague tudo e repita até sair sem consultar. As frases-chave para lembrar:
+      <ul>
+        <li><code>peek</code> decide, <code>accept</code> é opcional, <code>expect</code> é obrigatório.</li>
+        <li>Sempre <code>int c</code>, nunca <code>char c</code>.</li>
+        <li>Chame <code>unexpected</code> antes de consumir o caractere ruim.</li>
+        <li>Preencha <code>type</code> antes de qualquer erro possível.</li>
+        <li>O valor do mapa é lido pelo <code>parser</code>: essa é a recursão.</li>
+      </ul>
+    </li>
+  </ol>
+</section>
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+try { if (window.hljs) { hljs.configure({ ignoreUnescapedHTML: true }); hljs.highlightAll(); } } catch (e) {}
+
+(function () {
+  var input = '{"a":{"b":1}}';
+  var steps = [
+    { pos: 0, stack: ['main', 'argo'], ast: '(vazio)', msg: 'O main chama argo(&file, stream), que chama parser.' },
+    { pos: 0, stack: ['main', 'argo', 'parser'], ast: 'file: type=INTEGER  (valor seguro)', msg: 'parser faz peek: o próximo é "{" (sem consumir). Primeiro marca type=INTEGER por segurança, depois decide que é um mapa.' },
+    { pos: 1, stack: ['main', 'argo', 'parser', 'parse_map'], ast: 'file: MAP size=0', msg: 'parse_map: type=MAP, size=0, data=NULL. getc consome "{". accept("}") falha: não é um mapa vazio.' },
+    { pos: 1, stack: ['main', 'argo', 'parser', 'parse_map', 'get_str'], ast: 'file: MAP size=0\n└── data[0] (realloc, ainda vazio)', msg: 'peek é \'"\', então vem uma chave. realloc abre espaço para 1 pair e get_str começa.' },
+    { pos: 4, stack: ['main', 'argo', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"', msg: 'get_str consumiu a aspa de abertura, copiou "a" e parou na aspa de fechamento. size++ conta o par.' },
+    { pos: 5, stack: ['main', 'argo', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"', msg: 'expect(":") encontra os dois-pontos e consome.' },
+    { pos: 5, stack: ['main', 'argo', 'parser', 'parse_map', 'parser'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: type=INTEGER (seguro)', msg: 'parser(&cur->value): o valor é lido pelo parser de novo. peek é "{", outro mapa. Começa a recursão.' },
+    { pos: 6, stack: ['main', 'argo', 'parser', 'parse_map', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=0', msg: 'Um segundo parse_map, agora preenchendo o value. Consome "{".' },
+    { pos: 9, stack: ['main', 'argo', 'parser', 'parse_map', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"', msg: 'get_str lê a chave "b". size++.' },
+    { pos: 10, stack: ['main', 'argo', 'parser', 'parse_map', 'parser', 'parse_map', 'parser', 'parse_int'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"', msg: 'expect(":") consome. parser vê o dígito "1" e chama parse_int.' },
+    { pos: 11, stack: ['main', 'argo', 'parser', 'parse_map', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"\n        value: INTEGER 1', msg: 'fscanf("%d") lê 1 e para antes do "}". O valor vira INTEGER 1.' },
+    { pos: 12, stack: ['main', 'argo', 'parser', 'parse_map'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"\n        value: INTEGER 1', msg: 'O parse_map interno: accept("}") consome o primeiro "}" e retorna 1. A pilha volta para o mapa de fora.' },
+    { pos: 13, stack: ['main', 'argo'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"\n        value: INTEGER 1', msg: 'O parse_map externo: accept("}") consome o último "}" e retorna 1. O cursor chegou ao EOF.' },
+    { pos: 13, stack: ['main'], ast: 'file: MAP size=1\n└── data[0] key="a"\n    value: MAP size=1\n    └── data[0] key="b"\n        value: INTEGER 1', msg: 'argo retorna 1. O main chama serialize(file) e imprime {"a":{"b":1}}, igual à entrada.' }
+  ];
+  var i = 0;
+  var tape = document.getElementById('tape');
+  var chars = input.split('').concat(['EOF']);
+  chars.forEach(function (ch, k) {
+    var d = document.createElement('div');
+    d.className = 'cell';
+    if (ch === 'EOF') { d.style.width = '44px'; d.style.fontSize = '11px'; }
+    d.textContent = ch;
+    var idx = document.createElement('span'); idx.className = 'i'; idx.textContent = k;
+    d.appendChild(idx);
+    tape.appendChild(d);
+  });
+  var cells = tape.children;
+  function render() {
+    var s = steps[i];
+    for (var k = 0; k < cells.length; k++) {
+      cells[k].classList.toggle('read', k < s.pos);
+      cells[k].classList.toggle('cur', k === s.pos);
+    }
+    var st = document.getElementById('stack');
+    st.innerHTML = '';
+    s.stack.forEach(function (f) { var d = document.createElement('div'); d.className = 'frame'; d.textContent = f + '()'; st.appendChild(d); });
+    document.getElementById('ast').textContent = s.ast;
+    document.getElementById('msg').textContent = s.msg;
+    document.getElementById('count').textContent = 'passo ' + (i + 1) + ' / ' + steps.length;
+    document.getElementById('prev').disabled = i === 0;
+    document.getElementById('next').disabled = i === steps.length - 1;
+  }
+  document.getElementById('prev').addEventListener('click', function () { if (i > 0) { i--; render(); } });
+  document.getElementById('next').addEventListener('click', function () { if (i < steps.length - 1) { i++; render(); } });
+  document.getElementById('reset').addEventListener('click', function () { i = 0; render(); });
+  render();
+})();
+</script>
+
+<script>
+(function () {
+  function initToc() {
+    if (window.innerWidth > 860) return;
+    var toc = document.querySelector('nav.toc');
+    if (!toc) return;
+    var ol = toc.querySelector('ol');
+    var label = toc.querySelector('.label');
+    if (!ol || !label) return;
+    var arrow = document.createElement('span');
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = ' ▾';
+    arrow.style.cssText = 'display:inline-block;transition:transform .2s;margin-left:auto;flex-shrink:0;';
+    label.appendChild(arrow);
+    ol.style.display = 'none';
+    label.setAttribute('role', 'button');
+    label.setAttribute('aria-expanded', 'false');
+    label.setAttribute('tabindex', '0');
+    function toggle() {
+      var isOpen = ol.style.display !== 'none';
+      ol.style.display = isOpen ? 'none' : '';
+      label.setAttribute('aria-expanded', String(!isOpen));
+      arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+    label.addEventListener('click', toggle);
+    label.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToc);
+  } else {
+    initToc();
+  }
+})();
+</script>

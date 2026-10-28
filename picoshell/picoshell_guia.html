@@ -1,0 +1,859 @@
+<title>Guia do Picoshell</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Guia completo do Picoshell — Exam Rank 04">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+:root {
+  --bg: #f4f5f8; --surface: #ffffff; --fg: #1a2030; --muted: #5f6880;
+  --line: #d7dce8; --accent: #bf5a06; --code-bg: #eff1f7;
+  --pai: #3553b8; --pai-soft: #e8ecfc;
+  --filho: #197a4a; --filho-soft: #dcf5e8;
+  --cano: #bf5a06; --cano-soft: #fdecd5;
+  --err: #be3028; --err-soft: #fbe3e1; --kw: #8838d0;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#11151d;--surface:#181d27;--fg:#e3e8ef;--muted:#9aa4b6;--line:#2b3343;
+    --accent:#f09040;--code-bg:#1e2431;
+    --pai:#7aa7ff;--pai-soft:#1d2a47;--filho:#5fd29e;--filho-soft:#16352a;
+    --cano:#f09040;--cano-soft:#3a2a17;--err:#ff8378;--err-soft:#3d1d1b;--kw:#c99bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg:#11151d;--surface:#181d27;--fg:#e3e8ef;--muted:#9aa4b6;--line:#2b3343;
+  --accent:#f09040;--code-bg:#1e2431;
+  --pai:#7aa7ff;--pai-soft:#1d2a47;--filho:#5fd29e;--filho-soft:#16352a;
+  --cano:#f09040;--cano-soft:#3a2a17;--err:#ff8378;--err-soft:#3d1d1b;--kw:#c99bff;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 16px; line-height: 1.6; }
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px,env(safe-area-inset-left,0px));
+  padding-right: max(16px,env(safe-area-inset-right,0px));
+  padding-block: 40px 80px;
+  display: grid; grid-template-columns: 220px minmax(0,1fr); gap: 48px;
+}
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0,1fr); gap: 24px; } nav.toc { position: static !important; } }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top,0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc .label { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); font-weight: 600; }
+nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; counter-reset: s; }
+nav.toc li { counter-increment: s; }
+nav.toc a { color: var(--fg); text-decoration: none; display: flex; gap: 8px; padding: 3px 0; }
+nav.toc a::before { content: counter(s); font-family: var(--font-mono); color: var(--muted); width: 18px; flex: none; }
+nav.toc a:hover { color: var(--accent); }
+main { min-width: 0; }
+main > section { padding-top: 24px; margin-top: 32px; border-top: 1px solid var(--line); }
+main > section:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+h1,h2,h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(34px,6vw,52px); font-weight: 800; margin: 0 0 12px; letter-spacing: -.02em; }
+h2 { font-size: 28px; font-weight: 800; margin: 0 0 12px; letter-spacing: -.01em; }
+h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; }
+p,li { max-width: 70ch; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 600; color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+pre {
+  font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55;
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px 18px; overflow-x: auto; margin: 12px 0 20px; tab-size: 4;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+.hljs-keyword,.hljs-built_in,.hljs-type { color: var(--kw); }
+.hljs-string { color: var(--filho); }
+.hljs-number { color: var(--cano); }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-title,.hljs-title.function_ { color: var(--pai); }
+.hljs-meta { color: var(--muted); }
+.t-pai { color: var(--pai); font-weight: 600; }
+.t-filho { color: var(--filho); font-weight: 600; }
+.t-cano { color: var(--cano); font-weight: 600; }
+.note { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.note.warn { border-left-color: var(--err); }
+.note.pai { border-left-color: var(--pai); }
+.note.filho { border-left-color: var(--filho); }
+.note p { margin: 4px 0; }
+.note strong:first-child { display: block; font-family: var(--font-display); font-size: 15px; }
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th,td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td code { white-space: nowrap; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+.pill.pai { background: var(--pai-soft); color: var(--pai); }
+.pill.filho { background: var(--filho-soft); color: var(--filho); }
+.pill.cano { background: var(--cano-soft); color: var(--cano); }
+.pill.ok { background: var(--filho-soft); color: var(--filho); }
+.pill.bad { background: var(--err-soft); color: var(--err); }
+.diagram { overflow-x: auto; margin: 16px 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.diagram svg { display: block; height: auto; margin: 0 auto; }
+.diagram svg text { font-family: var(--font-mono); }
+.cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.checklist { list-style: none; padding: 0; display: grid; gap: 8px; }
+.checklist li { display: grid; grid-template-columns: 28px minmax(0,1fr); align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.checklist li::before { content: "☐"; font-size: 18px; line-height: 1.4; color: var(--accent); }
+.two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; }
+@media (max-width: 700px) { .two { grid-template-columns: minmax(0,1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.box h4 { margin: 0 0 8px; font-family: var(--font-display); font-size: 16px; }
+.box ul { margin: 0; padding-left: 18px; }
+
+/* tracer */
+.tracer { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 16px 0; }
+.pipeline { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 0; margin-bottom: 22px; padding: 12px 0; }
+.p-node {
+  font-family: var(--font-mono); font-size: 12px; padding: 7px 12px;
+  border: 2px solid var(--line); border-radius: 8px; background: var(--bg);
+  text-align: center; min-width: 58px; opacity: .25; transition: all .3s;
+  line-height: 1.3;
+}
+.p-node.active { opacity: 1; }
+.p-node.cmd.active  { border-color: var(--filho); color: var(--filho); background: var(--filho-soft); }
+.p-node.pipe.active { border-color: var(--cano);  color: var(--cano);  background: var(--cano-soft); }
+.p-node.io.active   { border-color: var(--pai);   color: var(--pai);   background: var(--pai-soft); }
+.p-node.highlight   { opacity: 1; transform: scale(1.1); z-index: 2; }
+.p-node.cmd.highlight  { box-shadow: 0 0 0 3px var(--filho-soft), 0 4px 12px rgba(0,0,0,.12); }
+.p-node.pipe.highlight { box-shadow: 0 0 0 3px var(--cano-soft),  0 4px 12px rgba(0,0,0,.12); }
+.p-arrow { padding: 0 5px; font-size: 15px; color: var(--muted); opacity: .2; transition: all .3s; align-self: center; flex-shrink: 0; user-select: none; }
+.p-arrow.active { opacity: 1; color: var(--cano); }
+.p-arrow.flow   { opacity: 1; color: var(--cano); animation: flowarrow 1.2s infinite; }
+@keyframes flowarrow { 0%,100%{opacity:.35}50%{opacity:1} }
+
+.trace-grid { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; margin-bottom: 14px; }
+@media (max-width: 580px) { .trace-grid { grid-template-columns: minmax(0,1fr); } }
+.state-box { background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.state-box h4 { margin: 0 0 8px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-family: var(--font-body); }
+.var-row { display: flex; flex-direction: column; gap: 4px; font-family: var(--font-mono); font-size: 13px; }
+.var-row span { display: flex; gap: 6px; }
+.var-label { color: var(--muted); flex: none; }
+.fd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.fd-pill { font-family: var(--font-mono); font-size: 11.5px; padding: 3px 8px; border-radius: 4px; text-align: center; }
+.fd-pill.open   { background: var(--filho-soft); color: var(--filho); }
+.fd-pill.closed { background: var(--code-bg); color: var(--muted); opacity: .7; }
+.fd-pill.fresh  { background: var(--cano-soft); color: var(--cano); }
+.fd-pill.na     { background: none; color: var(--muted); opacity: .5; }
+
+.trace-code {
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px;
+  padding: 12px 14px; font-family: var(--font-mono); font-size: 12.5px;
+  line-height: 1.5; white-space: pre; overflow-x: auto; margin-bottom: 14px; color: var(--fg);
+}
+.trace-msg { background: var(--bg); border: 1px dashed var(--line); border-radius: 6px; padding: 12px 14px; font-size: 14px; line-height: 1.6; min-height: 58px; margin-bottom: 14px; }
+.step-title { font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 4px; color: var(--accent); }
+
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button { font: 600 14px var(--font-body); padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+button:focus-visible,a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+.step-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ── Responsividade mobile ────────────────────────── */
+@media (max-width: 860px) {
+  .wrap { padding-block: 20px 48px; }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  nav.toc .label { padding: 10px 14px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  nav.toc ol { padding: 0 14px 10px; }
+}
+@media (max-width: 520px) {
+  h2 { font-size: clamp(20px, 5.5vw, 28px); }
+  h3 { font-size: 17px; }
+  pre { font-size: 12px; padding: 12px 14px; }
+  .tracer { padding: 12px; }
+  .trace-code { font-size: 11.5px; }
+  .trace-msg { font-size: 13px; }
+  .pipeline { flex-wrap: nowrap; overflow-x: auto; justify-content: flex-start; }
+}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Seções">
+  <div class="label">Picoshell · Exam Rank 04</div>
+  <ol>
+    <li><a href="#visao">Visão geral</a></li>
+    <li><a href="#assinatura">A assinatura</a></li>
+    <li><a href="#syscalls">As syscalls</a></li>
+    <li><a href="#infd">O padrão in_fd</a></li>
+    <li><a href="#codigo">O código anotado</a></li>
+    <li><a href="#trace">Simulador passo a passo</a></li>
+    <li><a href="#armadilhas">Armadilhas</a></li>
+    <li><a href="#treinar">Como treinar</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- ══════════════════════════════════════════════════ 1. VISÃO GERAL -->
+<section id="visao">
+  <div class="eyebrow">Exam Rank 04 · picoshell</div>
+  <h1>Guia do Picoshell</h1>
+  <p class="lead">O picoshell executa uma cadeia de comandos conectados por pipes — é o <code>|</code> do shell. Você recebe um array de comandos e precisa ligar a saída de cada um na entrada do próximo, executando todos em paralelo.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 760 160" width="760" role="img" aria-label="Fluxo: cmds[] entra em picoshell, que cria filhos com pipes, espera com wait e retorna 0 ou 1">
+      <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <!-- cmds box -->
+      <rect x="10" y="30" width="130" height="80" rx="8" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="75" y="62" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">char **cmds[]</text>
+      <text x="75" y="82" text-anchor="middle" font-size="12" fill="var(--fg)" font-family="var(--font-mono)">ls | grep | wc</text>
+      <line x1="140" y1="70" x2="195" y2="70" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <!-- picoshell box -->
+      <rect x="198" y="18" width="160" height="104" rx="8" fill="var(--cano-soft)" stroke="var(--cano)" stroke-width="2"/>
+      <text x="278" y="52" text-anchor="middle" font-size="15" font-weight="600" fill="var(--cano)" font-family="var(--font-display)">picoshell()</text>
+      <text x="278" y="72" text-anchor="middle" font-size="11" fill="var(--cano)" font-family="var(--font-body)">VOCÊ ESCREVE</text>
+      <text x="278" y="92" text-anchor="middle" font-size="11" fill="var(--cano)" font-family="var(--font-mono)">pipe · fork · dup2</text>
+      <text x="278" y="108" text-anchor="middle" font-size="11" fill="var(--cano)" font-family="var(--font-mono)">execvp · wait</text>
+      <line x1="358" y1="70" x2="413" y2="70" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <!-- filhos box -->
+      <rect x="416" y="20" width="200" height="100" rx="8" fill="var(--surface)" stroke="var(--line)"/>
+      <text x="516" y="45" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">filhos em paralelo</text>
+      <rect x="430" y="54" width="54" height="24" rx="4" fill="var(--filho-soft)"/>
+      <text x="457" y="71" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">ls</text>
+      <line x1="484" y1="66" x2="502" y2="66" stroke="var(--cano)" stroke-width="2"/>
+      <rect x="502" y="54" width="54" height="24" rx="4" fill="var(--filho-soft)"/>
+      <text x="529" y="71" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">grep</text>
+      <line x1="556" y1="66" x2="574" y2="66" stroke="var(--cano)" stroke-width="2"/>
+      <rect x="574" y="54" width="30" height="24" rx="4" fill="var(--filho-soft)"/>
+      <text x="589" y="71" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">wc</text>
+      <line x1="616" y1="70" x2="671" y2="70" stroke="var(--muted)" stroke-width="1.5" marker-end="url(#ar)"/>
+      <!-- return box -->
+      <rect x="674" y="40" width="80" height="60" rx="8" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="714" y="65" text-anchor="middle" font-size="13" fill="var(--filho)" font-family="var(--font-mono)">0</text>
+      <text x="714" y="84" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--font-mono)">ou 1</text>
+      <!-- labels -->
+      <text x="278" y="148" text-anchor="middle" font-size="11" fill="var(--muted)" font-family="var(--font-body)">retorna 0 (ok) ou 1 (erro)</text>
+    </svg>
+  </div>
+
+  <h3>Você terminou o projeto quando…</h3>
+  <ul class="checklist">
+    <li><span>Para cada comando (exceto o último), chama <code>pipe(fd)</code> antes do <code>fork()</code>.</span></li>
+    <li><span>No filho: se não for o primeiro, <code>dup2(in_fd, 0)</code> — redireciona stdin para a saída do cano anterior.</span></li>
+    <li><span>No filho: se não for o último, <code>dup2(fd[1], 1)</code> — redireciona stdout para a entrada do cano atual.</span></li>
+    <li><span>No filho: fecha os fds brutos não usados e chama <code>execvp</code> (com <code>exit(1)</code> de fallback).</span></li>
+    <li><span>No pai: fecha <code>fd[1]</code> (escrita do cano atual) — sem isso o leitor nunca vê EOF.</span></li>
+    <li><span>No pai: fecha <code>in_fd</code> antigo e guarda <code>fd[0]</code> no <code>in_fd</code> para a próxima iteração.</span></li>
+    <li><span><code>while(wait(&amp;status) &gt; 0)</code> coleta todos os filhos e retorna <code>1</code> se qualquer um falhou.</span></li>
+  </ul>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 2. ASSINATURA -->
+<section id="assinatura">
+  <h2>A assinatura: desvendando <code>char **cmds[]</code></h2>
+  <p>O tipo parece intimidador mas é um array (terminado em NULL) de arrays de strings — exatamente o que o <code>execvp</code> espera como segundo argumento.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 700 230" width="700" role="img" aria-label="Layout de memória de char **cmds[]: array de ponteiros para arrays de strings">
+      <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker></defs>
+      <!-- cmds array -->
+      <text x="10" y="24" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">cmds</text>
+      <rect x="10" y="32" width="80" height="28" rx="4" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="50" y="51" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">cmds[0]</text>
+      <rect x="10" y="64" width="80" height="28" rx="4" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="50" y="83" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">cmds[1]</text>
+      <rect x="10" y="96" width="80" height="28" rx="4" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="50" y="115" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">cmds[2]</text>
+      <rect x="10" y="128" width="80" height="28" rx="4" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="50" y="147" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">NULL</text>
+      <!-- arrows from cmds to sub-arrays -->
+      <line x1="90" y1="46" x2="200" y2="46" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar2)"/>
+      <line x1="90" y1="78" x2="200" y2="110" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar2)"/>
+      <line x1="90" y1="110" x2="200" y2="180" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar2)"/>
+      <!-- cmd1 array -->
+      <text x="204" y="24" font-size="11" fill="var(--muted)" font-family="var(--font-body)">cmd1  (char *[])</text>
+      <rect x="204" y="32" width="100" height="28" rx="4" fill="var(--filho-soft)" stroke="var(--filho)"/>
+      <text x="254" y="51" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">"/bin/ls"</text>
+      <rect x="204" y="64" width="100" height="28" rx="4" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="254" y="83" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">NULL</text>
+      <!-- cmd2 array -->
+      <text x="204" y="98" font-size="11" fill="var(--muted)" font-family="var(--font-body)">cmd2  (char *[])</text>
+      <rect x="204" y="106" width="130" height="28" rx="4" fill="var(--filho-soft)" stroke="var(--filho)"/>
+      <text x="269" y="125" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">"/usr/bin/grep"</text>
+      <rect x="204" y="138" width="130" height="28" rx="4" fill="var(--filho-soft)" stroke="var(--filho)"/>
+      <text x="269" y="157" text-anchor="middle" font-size="12" fill="var(--filho)" font-family="var(--font-mono)">"picoshell"</text>
+      <rect x="204" y="170" width="130" height="28" rx="4" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="269" y="189" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">NULL</text>
+      <!-- annotations -->
+      <text x="380" y="51" font-size="12" fill="var(--muted)" font-family="var(--font-body)">← cmds[0][0] = nome do executável</text>
+      <text x="380" y="125" font-size="12" fill="var(--muted)" font-family="var(--font-body)">← cmds[1][0] = nome do executável</text>
+      <text x="380" y="157" font-size="12" fill="var(--muted)" font-family="var(--font-body)">← cmds[1][1] = primeiro argumento</text>
+      <text x="10" y="220" font-size="12" fill="var(--muted)" font-family="var(--font-body)">O loop termina quando cmds[i] == NULL. cmds[i][0] é o executável; cmds[i] é o argv inteiro.</text>
+    </svg>
+  </div>
+
+<pre><code class="language-c">char *cmd1[] = {"/bin/ls", NULL};
+char *cmd2[] = {"/usr/bin/grep", "picoshell", NULL};
+char **cmds[] = {cmd1, cmd2, NULL};
+
+// No loop:
+//   cmds[i]    → array de strings do comando i (char **)
+//   cmds[i][0] → nome do executável             (char *)
+//   cmds[i+1]  → NULL se for o último comando</code></pre>
+
+  <div class="note">
+    <strong>Por que <code>char **cmds[]</code> e não <code>char ***cmds</code>?</strong>
+    <p>São equivalentes como parâmetro de função. <code>char **cmds[]</code> deixa claro que é um array de <code>char **</code>; <code>char ***cmds</code> é um ponteiro para <code>char **</code>. Dentro da função o compilador trata os dois da mesma forma.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 3. SYSCALLS -->
+<section id="syscalls">
+  <h2>As syscalls: pipe, fork, dup2, execvp, wait</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Syscall</th><th>O que faz</th><th>Retorno</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><code>pipe(fd)</code></td>
+        <td>Cria um cano bidirecional. <code>fd[0]</code> = ponta de leitura, <code>fd[1]</code> = ponta de escrita. Tudo o que for escrito em <code>fd[1]</code> pode ser lido em <code>fd[0]</code>.</td>
+        <td><code>0</code> ok · <code>-1</code> erro</td>
+      </tr>
+      <tr>
+        <td><code>fork()</code></td>
+        <td>Duplica o processo. Pai e filho continuam a partir do mesmo ponto. Todos os fds abertos são copiados para o filho — incluindo os criados com <code>pipe()</code>.</td>
+        <td><code>0</code> no filho · PID no pai · <code>-1</code> erro</td>
+      </tr>
+      <tr>
+        <td><code>dup2(a, b)</code></td>
+        <td>Faz o fd <code>b</code> apontar para o mesmo recurso que <code>a</code>. Se <code>b</code> estava aberto, fecha-o primeiro. Usado para redirecionar stdin (<code>b=0</code>) ou stdout (<code>b=1</code>).</td>
+        <td><code>b</code> ok · <code>-1</code> erro</td>
+      </tr>
+      <tr>
+        <td><code>execvp(cmd, argv)</code></td>
+        <td>Substitui a imagem do processo pelo programa <code>cmd</code>. O processo herda todos os fds abertos — inclusive os configurados com <code>dup2</code>. <strong>Só retorna se falhar.</strong></td>
+        <td>só <code>-1</code> (erro)</td>
+      </tr>
+      <tr>
+        <td><code>wait(&amp;status)</code></td>
+        <td>Bloqueia até que qualquer filho termine. Preenche <code>status</code>. Retorna <code>-1</code> quando não há mais filhos. Por isso o loop é <code>while (wait(&amp;status) &gt; 0)</code>.</td>
+        <td>PID do filho · <code>-1</code> se nenhum</td>
+      </tr>
+      <tr>
+        <td><code>WIFEXITED(s)</code></td>
+        <td>Verdadeiro se o filho saiu normalmente, sem sinal.</td>
+        <td>int (bool)</td>
+      </tr>
+      <tr>
+        <td><code>WEXITSTATUS(s)</code></td>
+        <td>O código de saída do filho — o valor passado para <code>exit()</code> ou retornado por <code>main()</code>. Só válido se <code>WIFEXITED</code> for verdadeiro.</td>
+        <td>int</td>
+      </tr>
+    </tbody>
+  </table></div>
+
+  <div class="note pai">
+    <strong>fork() copia tudo — e isso importa</strong>
+    <p>Quando o pai chama <code>pipe(fd)</code> e depois <code>fork()</code>, o filho herda <code>fd[0]</code> e <code>fd[1]</code>. Pai e filho têm ambas as pontas abertas. Fechar a ponta de escrita no pai e no filho (depois do <code>dup2</code>) é obrigatório para que o leitor veja o EOF no momento certo.</p>
+  </div>
+
+  <h3>Como o <code>dup2</code> redireciona stdin e stdout</h3>
+<pre><code class="language-c">// Antes: fd 0 (stdin) aponta para o teclado
+//        fd[0] (ex: fd 3) aponta para a leitura do Cano 1
+
+dup2(fd[0], 0);  // fd 0 agora aponta para o Cano 1 (substitui teclado)
+close(fd[0]);    // fecha fd 3 (desnecessário — fd 0 já faz o mesmo papel)
+
+// Agora: qualquer read() em fd 0 vem do cano, não do teclado</code></pre>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 4. in_fd -->
+<section id="infd">
+  <h2>O padrão <code>in_fd</code>: a variável que liga as iterações</h2>
+  <p><code>in_fd</code> começa como <code>0</code> (o fd do teclado) e, após cada iteração, passa a guardar a ponta de leitura (<code>fd[0]</code>) do cano recém-criado. É o fio condutor que conecta um processo ao próximo.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 740 340" width="740" role="img" aria-label="Três iterações do loop: in_fd evolui de 0 para R1 para R2">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--muted)"/></marker>
+        <marker id="ar3g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--filho)"/></marker>
+        <marker id="ar3o" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--cano)"/></marker>
+      </defs>
+
+      <!-- ITER 0 -->
+      <text x="10" y="22" font-size="11" font-weight="600" fill="var(--muted)" font-family="var(--font-body)" text-transform="uppercase">ITERAÇÃO 0 — ls</text>
+      <!-- in_fd pill -->
+      <rect x="10" y="32" width="110" height="30" rx="6" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="65" y="52" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">in_fd = 0</text>
+      <!-- filho box -->
+      <rect x="170" y="28" width="110" height="38" rx="6" fill="var(--filho-soft)" stroke="var(--filho)" stroke-width="1.5"/>
+      <text x="225" y="44" text-anchor="middle" font-size="13" font-weight="600" fill="var(--filho)" font-family="var(--font-display)">Filho 0 (ls)</text>
+      <text x="225" y="59" text-anchor="middle" font-size="10" fill="var(--filho)" font-family="var(--font-mono)">stdin=teclado</text>
+      <!-- pipe box -->
+      <rect x="330" y="28" width="130" height="38" rx="6" fill="var(--cano-soft)" stroke="var(--cano)"/>
+      <text x="395" y="44" text-anchor="middle" font-size="12" fill="var(--cano)" font-family="var(--font-mono)">pipe(fd)</text>
+      <text x="395" y="59" text-anchor="middle" font-size="10" fill="var(--cano)" font-family="var(--font-mono)">fd[0]=R1  fd[1]=W1</text>
+      <!-- arrows -->
+      <line x1="120" y1="47" x2="168" y2="47" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <line x1="280" y1="47" x2="328" y2="47" stroke="var(--cano)" stroke-width="1.3" marker-end="url(#ar3o)"/>
+      <!-- dup2 annotation -->
+      <text x="175" y="84" font-size="11" fill="var(--filho)" font-family="var(--font-body)">stdin inalterado (in_fd==0)</text>
+      <text x="335" y="84" font-size="11" fill="var(--cano)" font-family="var(--font-body)">dup2(W1, 1) → stdout para W1</text>
+      <!-- pai annotation -->
+      <text x="10" y="104" font-size="11" fill="var(--pai)" font-family="var(--font-body)">Pai: close(W1)  ·  in_fd = R1</text>
+
+      <!-- ITER 1 -->
+      <line x1="10" y1="118" x2="730" y2="118" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="10" y="136" font-size="11" font-weight="600" fill="var(--muted)" font-family="var(--font-body)">ITERAÇÃO 1 — grep</text>
+      <rect x="10" y="146" width="110" height="30" rx="6" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="65" y="166" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">in_fd = R1</text>
+      <rect x="170" y="142" width="130" height="38" rx="6" fill="var(--filho-soft)" stroke="var(--filho)" stroke-width="1.5"/>
+      <text x="235" y="158" text-anchor="middle" font-size="13" font-weight="600" fill="var(--filho)" font-family="var(--font-display)">Filho 1 (grep)</text>
+      <text x="235" y="173" text-anchor="middle" font-size="10" fill="var(--filho)" font-family="var(--font-mono)">stdin←R1  stdout→W2</text>
+      <rect x="350" y="142" width="130" height="38" rx="6" fill="var(--cano-soft)" stroke="var(--cano)"/>
+      <text x="415" y="158" text-anchor="middle" font-size="12" fill="var(--cano)" font-family="var(--font-mono)">pipe(fd)</text>
+      <text x="415" y="173" text-anchor="middle" font-size="10" fill="var(--cano)" font-family="var(--font-mono)">fd[0]=R2  fd[1]=W2</text>
+      <line x1="120" y1="161" x2="168" y2="161" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <line x1="300" y1="161" x2="348" y2="161" stroke="var(--cano)" stroke-width="1.3" marker-end="url(#ar3o)"/>
+      <text x="175" y="198" font-size="11" fill="var(--filho)" font-family="var(--font-body)">dup2(R1, 0) · close(R1)</text>
+      <text x="355" y="198" font-size="11" fill="var(--cano)" font-family="var(--font-body)">dup2(W2, 1) · close(R2) · close(W2)</text>
+      <text x="10" y="218" font-size="11" fill="var(--pai)" font-family="var(--font-body)">Pai: close(R1)  ·  close(W2)  ·  in_fd = R2</text>
+
+      <!-- ITER 2 -->
+      <line x1="10" y1="232" x2="730" y2="232" stroke="var(--line)" stroke-width="1" stroke-dasharray="3 3"/>
+      <text x="10" y="250" font-size="11" font-weight="600" fill="var(--muted)" font-family="var(--font-body)">ITERAÇÃO 2 — wc (último)</text>
+      <rect x="10" y="260" width="110" height="30" rx="6" fill="var(--pai-soft)" stroke="var(--pai)"/>
+      <text x="65" y="280" text-anchor="middle" font-size="12" fill="var(--pai)" font-family="var(--font-mono)">in_fd = R2</text>
+      <rect x="170" y="256" width="130" height="38" rx="6" fill="var(--filho-soft)" stroke="var(--filho)" stroke-width="1.5"/>
+      <text x="235" y="272" text-anchor="middle" font-size="13" font-weight="600" fill="var(--filho)" font-family="var(--font-display)">Filho 2 (wc)</text>
+      <text x="235" y="287" text-anchor="middle" font-size="10" fill="var(--filho)" font-family="var(--font-mono)">stdin←R2  stdout=tela</text>
+      <!-- no pipe -->
+      <rect x="350" y="256" width="130" height="38" rx="6" fill="var(--code-bg)" stroke="var(--line)"/>
+      <text x="415" y="272" text-anchor="middle" font-size="12" fill="var(--muted)" font-family="var(--font-mono)">sem pipe()</text>
+      <text x="415" y="287" text-anchor="middle" font-size="10" fill="var(--muted)" font-family="var(--font-mono)">cmds[3] == NULL</text>
+      <line x1="120" y1="275" x2="168" y2="275" stroke="var(--muted)" stroke-width="1.3" marker-end="url(#ar3)"/>
+      <text x="175" y="312" font-size="11" fill="var(--filho)" font-family="var(--font-body)">dup2(R2, 0) · close(R2)</text>
+      <text x="355" y="312" font-size="11" fill="var(--muted)" font-family="var(--font-body)">stdout inalterado → vai para a tela</text>
+      <text x="10" y="332" font-size="11" fill="var(--pai)" font-family="var(--font-body)">Pai: close(R2)  ·  while(wait()) aguarda os 3 filhos</text>
+    </svg>
+  </div>
+
+  <div class="two">
+    <div class="box">
+      <h4>Por que fechar <code>fd[1]</code> no pai?</h4>
+      <p>Após o <code>fork()</code>, a ponta de escrita do cano (<code>fd[1]</code>) existe tanto no filho quanto no pai. O leitor (próximo filho) só recebe EOF quando <strong>todos</strong> os descritores de escrita daquele cano são fechados. Se o pai não fechar <code>fd[1]</code>, o leitor espera para sempre.</p>
+    </div>
+    <div class="box">
+      <h4>Por que fechar <code>in_fd</code> no pai?</h4>
+      <p>Após o <code>dup2(in_fd, 0)</code> no filho, o fd original (<code>in_fd</code>) não é mais necessário no filho — e também não é no pai. Fechar no pai evita vazamento de descritores. Se o pai guardar a leitura de todos os canos abertos, o próximo cano pode ter problemas de EOF também.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 5. CÓDIGO -->
+<section id="codigo">
+  <h2>O código completo e anotado</h2>
+<pre><code class="language-c">#include &lt;unistd.h&gt;    // fork, execvp, pipe, dup2, close
+#include &lt;sys/types.h&gt; // pid_t
+#include &lt;sys/wait.h&gt;  // wait, WIFEXITED, WEXITSTATUS
+#include &lt;stdlib.h&gt;    // exit
+
+int picoshell(char **cmds[])
+{
+    /* in_fd começa com 0 (stdin do teclado).
+     * Ao final de cada iteração, recebe fd[0] do cano criado nela. */
+    int i = 0, in_fd = 0, fd[2], pid, status;
+
+    while (cmds[i])
+    {
+        /* Cria o cano ANTES do fork. O fork copiará fd[] para o filho.
+         * A condição curto-circuita: pipe() só é chamado se houver
+         * um próximo comando. */
+        if (cmds[i + 1] && pipe(fd) &lt; 0)
+            return 1;
+
+        if ((pid = fork()) &lt; 0)
+            return 1;
+
+        if (pid == 0)   /* ── BLOCO DO FILHO ──────────────────── */
+        {
+            /* Redireciona stdin para a ponta de leitura do cano anterior.
+             * Pula no primeiro comando (in_fd == 0 == teclado). */
+            if (in_fd != 0)
+            {
+                dup2(in_fd, 0);  // fd 0 agora lê do cano anterior
+                close(in_fd);    // fecha o fd bruto (desnecessário)
+            }
+
+            /* Redireciona stdout para a ponta de escrita do cano atual.
+             * Pula no último comando (sem próximo → stdout vai pra tela). */
+            if (cmds[i + 1])
+            {
+                dup2(fd[1], 1);  // fd 1 agora escreve no cano atual
+                close(fd[0]);    // filho não lê deste cano
+                close(fd[1]);    // fd bruto desnecessário (dup2 cuidou)
+            }
+
+            execvp(cmds[i][0], cmds[i]);
+            exit(1);  // execvp só chega aqui se falhar
+        }
+        /* ── BLOCO DO PAI ───────────────────────────────────── */
+
+        /* Fecha o in_fd antigo: o filho já tem sua cópia via dup2.
+         * Pula no primeiro comando (in_fd == 0 = teclado, não fechar). */
+        if (in_fd != 0)
+            close(in_fd);
+
+        /* Prepara in_fd para a próxima iteração:
+         * fecha a escrita (CRUCIAL — sem isso o leitor nunca vê EOF)
+         * e guarda a leitura para passar ao próximo filho. */
+        if (cmds[i + 1])
+        {
+            close(fd[1]);   // fecha escrita do cano no pai
+            in_fd = fd[0];  // guarda leitura para a próxima iteração
+        }
+        i++;
+    }
+
+    /* Coleta todos os filhos. wait() retorna -1 quando não há mais.
+     * Retorna 1 se qualquer filho não saiu normalmente ou saiu com erro. */
+    while (wait(&amp;status) &gt; 0)
+        if (!WIFEXITED(status) || WEXITSTATUS(status))
+            return 1;
+    return 0;
+}</code></pre>
+
+  <div class="note filho">
+    <strong>Por que <code>exit(1)</code> e não <code>return 1</code> após o <code>execvp</code>?</strong>
+    <p>Se <code>execvp</code> falha (executável não encontrado), o filho precisa sair. Com <code>return 1</code>, o filho voltaria para o <code>while</code> e começaria a criar mais <code>fork()</code>s — um desastre. <code>exit(1)</code> garante que o filho termina no lugar.</p>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 6. SIMULADOR -->
+<section id="trace">
+  <h2>Simulador passo a passo</h2>
+  <p>Acompanhe a execução de <code>ls | grep picoshell | wc -l</code> iteração por iteração. Observe como <code>in_fd</code> evolui e como os fds do pai são gerenciados.</p>
+
+  <div class="tracer">
+    <!-- pipeline diagram -->
+    <div class="pipeline" id="tr-pipeline">
+      <div id="n-stdin"    class="p-node io">stdin<br><small>fd 0</small></div>
+      <div id="a0"         class="p-arrow">→</div>
+      <div id="n-cmd0"     class="p-node cmd">ls<br><small>Filho 0</small></div>
+      <div id="a1"         class="p-arrow">→</div>
+      <div id="p-pipe1"    class="p-node pipe">Cano 1</div>
+      <div id="a2"         class="p-arrow">→</div>
+      <div id="n-cmd1"     class="p-node cmd">grep<br><small>Filho 1</small></div>
+      <div id="a3"         class="p-arrow">→</div>
+      <div id="p-pipe2"    class="p-node pipe">Cano 2</div>
+      <div id="a4"         class="p-arrow">→</div>
+      <div id="n-cmd2"     class="p-node cmd">wc<br><small>Filho 2</small></div>
+      <div id="a5"         class="p-arrow">→</div>
+      <div id="n-stdout"   class="p-node io">tela<br><small>fd 1</small></div>
+    </div>
+
+    <!-- state grid -->
+    <div class="trace-grid">
+      <div class="state-box">
+        <h4>Variáveis do pai</h4>
+        <div class="var-row">
+          <span><span class="var-label">i      </span><span id="tr-i">0</span></span>
+          <span><span class="var-label">in_fd  </span><span id="tr-infd">0 (stdin)</span></span>
+        </div>
+      </div>
+      <div class="state-box">
+        <h4>Canos abertos no pai</h4>
+        <div class="fd-grid" id="tr-fds">
+          <div id="fd-r1" class="fd-pill na">Cano1-R: —</div>
+          <div id="fd-w1" class="fd-pill na">Cano1-W: —</div>
+          <div id="fd-r2" class="fd-pill na">Cano2-R: —</div>
+          <div id="fd-w2" class="fd-pill na">Cano2-W: —</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-title" id="tr-title">Início</div>
+    <div class="trace-msg" id="tr-msg"></div>
+    <pre class="trace-code" id="tr-code"></pre>
+
+    <div class="controls">
+      <button id="tr-prev" type="button">← Anterior</button>
+      <button id="tr-next" type="button" class="primary">Próximo →</button>
+      <button id="tr-reset" type="button">Recomeçar</button>
+      <span class="step-count" id="tr-count"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 7. ARMADILHAS -->
+<section id="armadilhas">
+  <h2>Armadilhas comuns</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Erro</th><th>Consequência</th><th>Correção</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Não fechar <code>fd[1]</code> no pai após o fork</td>
+        <td>O cano nunca fecha para o leitor (pai ainda tem a escrita aberta). O próximo filho espera por mais dados para sempre. O programa trava.</td>
+        <td><code>close(fd[1])</code> no bloco do pai, dentro do <code>if (cmds[i+1])</code>.</td>
+      </tr>
+      <tr>
+        <td>Não dar <code>exit(1)</code> após <code>execvp</code></td>
+        <td>Se <code>execvp</code> falha, o filho retorna ao loop e começa a fazer seus próprios <code>fork()</code>s — fork bomb em potencial.</td>
+        <td>Sempre colocar <code>exit(1);</code> logo após <code>execvp()</code>.</td>
+      </tr>
+      <tr>
+        <td>Chamar <code>pipe()</code> antes de verificar se <code>cmds[i+1]</code> existe</td>
+        <td>Cria um cano para o último comando, que nunca é usado. Vaza dois fds.</td>
+        <td><code>if (cmds[i + 1] &amp;&amp; pipe(fd) &lt; 0)</code> — a condição curto-circuita.</td>
+      </tr>
+      <tr>
+        <td>Não fechar <code>in_fd</code> no pai</td>
+        <td>O pai acumula descritores de leitura de todos os canos anteriores. Em pipelines longos, pode exceder o limite de fds do processo.</td>
+        <td><code>if (in_fd != 0) close(in_fd);</code> logo antes de atualizar <code>in_fd</code>.</td>
+      </tr>
+      <tr>
+        <td>Não fechar <code>fd[0]</code> e <code>fd[1]</code> no filho após o <code>dup2</code></td>
+        <td>O filho passa os fds brutos para o programa executado. Geralmente inofensivo, mas tecnicamente incorreto — o programa filho vê fds extras que não deveria.</td>
+        <td><code>close(fd[0]); close(fd[1]);</code> depois do <code>dup2(fd[1], 1)</code>.</td>
+      </tr>
+      <tr>
+        <td>Usar <code>wait()</code> fora do loop (só uma vez)</td>
+        <td>Coleta apenas um filho. Os outros ficam como zumbis. Se o filho coletado não foi o único com erro, o código de retorno pode estar errado.</td>
+        <td><code>while (wait(&amp;status) &gt; 0)</code> — coleta todos os filhos um a um.</td>
+      </tr>
+      <tr>
+        <td>Testar <code>pid == 1</code> (do pai) em vez de <code>pid == 0</code> (do filho)</td>
+        <td>O bloco de redirecionamento roda no processo pai. O filho recebe o PID do pai como retorno de <code>fork()</code> e entra no bloco "errado".</td>
+        <td>No filho <code>fork()</code> retorna <code>0</code>, sempre: <code>if (pid == 0)</code>.</td>
+      </tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- ══════════════════════════════════════════════════ 8. TREINAR -->
+<section id="treinar">
+  <h2>Como treinar para escrever de memória</h2>
+  <ol>
+    <li><strong>Escreva o esqueleto</strong>: a função com o <code>while (cmds[i])</code> e as variáveis. Compile e veja que não faz nada.</li>
+    <li><strong>Adicione o <code>fork()</code></strong>: só o fork, sem pipe. Execute <code>ls</code> único (array com um comando). O filho deve rodar <code>ls</code> e o pai aguardar com <code>wait()</code>.</li>
+    <li><strong>Adicione o <code>pipe()</code> + <code>dup2</code></strong>: suporte dois comandos. Teste <code>ls | grep algo</code>. Verifique que o grep recebe a saída do ls.</li>
+    <li><strong>Generalize para N comandos</strong>: o <code>in_fd</code> já cuida disso se você implementou corretamente os passos anteriores. Teste com 3 ou 4 comandos.</li>
+    <li><strong>Teste os erros</strong>: passe um executável que não existe — o <code>exit(1)</code> deve fazer o <code>wait()</code> capturar o status de erro e retornar <code>1</code>.</li>
+    <li>Apague tudo e repita até sair sem consultar. As frases-chave para lembrar:
+      <ul>
+        <li><code>pipe()</code> antes do <code>fork()</code> — sempre.</li>
+        <li>Filho: <code>dup2</code> nos fds → fecha os fds brutos → <code>execvp</code> → <code>exit(1)</code>.</li>
+        <li>Pai: fecha <code>in_fd</code> antigo → fecha <code>fd[1]</code> → guarda <code>fd[0]</code> no <code>in_fd</code>.</li>
+        <li><code>while (wait(&amp;status) &gt; 0)</code> — não uma vez só.</li>
+        <li>Fechar <code>fd[1]</code> no pai é obrigatório. Sem isso o próximo filho trava.</li>
+      </ul>
+    </li>
+  </ol>
+
+  <h3>Compile e teste</h3>
+<pre><code class="language-bash">gcc -Wall -Wextra -Werror -o picoshell picoshell.c
+
+# um comando só
+char *cmd1[] = {"/bin/ls", NULL};
+char **cmds[] = {cmd1, NULL};
+# saída deve ser a listagem do diretório
+
+# dois comandos
+char *cmd2[] = {"/usr/bin/grep", "picoshell", NULL};
+char **cmds[] = {cmd1, cmd2, NULL};
+# saída: linhas que contêm "picoshell"
+
+# três comandos
+char *cmd3[] = {"/usr/bin/wc", "-l", NULL};
+char **cmds[] = {cmd1, cmd2, cmd3, NULL};
+# saída: número de linhas que contêm "picoshell"</code></pre>
+</section>
+
+</main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+try { if (window.hljs) { hljs.configure({ ignoreUnescapedHTML: true }); hljs.highlightAll(); } } catch(e) {}
+</script>
+
+<script>
+(function () {
+  var steps = [
+    {
+      title: 'Início',
+      i: '0', infd: '0 (stdin)',
+      r1: '—', w1: '—', r2: '—', w2: '—',
+      r1c: 'na', w1c: 'na', r2c: 'na', w2c: 'na',
+      active: ['n-stdin'], highlight: [], flow: [],
+      msg: 'Variáveis inicializadas: i=0, in_fd=0. O fd 0 é a entrada padrão do teclado. Nenhum cano foi criado ainda.',
+      code: 'int i = 0, in_fd = 0, fd[2], pid, status;\nwhile (cmds[i])   // cmds[0] = {"ls", NULL}'
+    },
+    {
+      title: 'Iteração 0 — pipe() cria Cano 1',
+      i: '0', infd: '0 (stdin)',
+      r1: '3 (novo)', w1: '4 (novo)', r2: '—', w2: '—',
+      r1c: 'fresh', w1c: 'fresh', r2c: 'na', w2c: 'na',
+      active: ['n-stdin', 'n-cmd0', 'p-pipe1'], highlight: ['p-pipe1'], flow: [],
+      msg: 'cmds[1] existe (grep). Pai chama pipe(fd). Novos fds: fd[0]=3 (Cano 1 leitura / R1) e fd[1]=4 (Cano 1 escrita / W1). Ambas as pontas estão abertas no pai.',
+      code: 'if (cmds[i + 1] && pipe(fd) < 0)\n    return 1;\n// fd[0] = 3 (R1)  fd[1] = 4 (W1)'
+    },
+    {
+      title: 'Iteração 0 — fork() → Filho 0 (ls)',
+      i: '0', infd: '0 (stdin)',
+      r1: '3', w1: '→ fd 1 (stdout)', r2: '—', w2: '—',
+      r1c: 'open', w1c: 'fresh', r2c: 'na', w2c: 'na',
+      active: ['n-stdin', 'n-cmd0', 'p-pipe1'], highlight: ['n-cmd0'], flow: ['a0', 'a1'],
+      msg: 'Filho 0 (ls). in_fd==0: stdin não muda — ls lê do teclado (irrelevante aqui). cmds[1] existe: dup2(fd[1]=4, 1) faz stdout escrever no Cano 1. Fecha fd[0]=3 e fd[1]=4 (fds brutos desnecessários após dup2). execvp("ls").',
+      code: 'if (pid == 0) {\n    // in_fd == 0 → stdin não muda\n    if (cmds[i + 1]) {\n        dup2(fd[1], 1);  // stdout → Cano 1 W (fd 4)\n        close(fd[0]);    // fecha R1 (fd 3) no filho\n        close(fd[1]);    // fecha W1 bruto (fd 4) no filho\n    }\n    execvp(cmds[i][0], cmds[i]);\n    exit(1);\n}'
+    },
+    {
+      title: 'Iteração 0 — Pai arruma fds',
+      i: '0 → 1', infd: '3 (Cano 1 R)',
+      r1: '3', w1: 'fechado', r2: '—', w2: '—',
+      r1c: 'open', w1c: 'closed', r2c: 'na', w2c: 'na',
+      active: ['n-cmd0', 'p-pipe1', 'n-cmd1'], highlight: [], flow: ['a1'],
+      msg: 'Pai (após fork). in_fd era 0: pula close. cmds[1] existe: close(fd[1]=4) — CRUCIAL, fecha W1 no pai para que o grep receba EOF quando ls terminar. Guarda in_fd = fd[0] = 3. i++.',
+      code: 'if (in_fd != 0) close(in_fd);  // 0 → pula\nif (cmds[i + 1]) {\n    close(fd[1]);    // fecha W1 (fd 4) no pai ← ESSENCIAL\n    in_fd = fd[0];  // in_fd = 3 (R1)\n}\ni++;'
+    },
+    {
+      title: 'Iteração 1 — pipe() cria Cano 2',
+      i: '1', infd: '3 (Cano 1 R)',
+      r1: '3', w1: 'fechado', r2: '4 (novo)', w2: '5 (novo)',
+      r1c: 'open', w1c: 'closed', r2c: 'fresh', w2c: 'fresh',
+      active: ['p-pipe1', 'n-cmd1', 'p-pipe2'], highlight: ['p-pipe2'], flow: ['a1'],
+      msg: 'cmds[2] existe (wc). Pai chama pipe(fd). fd[0]=4 foi reaproveitado (W1 foi fechado). Novos fds: fd[0]=4 (Cano 2 leitura / R2) e fd[1]=5 (Cano 2 escrita / W2).',
+      code: 'if (cmds[i + 1] && pipe(fd) < 0)\n    return 1;\n// fd[0] = 4 (R2)  fd[1] = 5 (W2)'
+    },
+    {
+      title: 'Iteração 1 — fork() → Filho 1 (grep)',
+      i: '1', infd: '3 (Cano 1 R)',
+      r1: '→ fd 0 (stdin)', w1: 'fechado', r2: '4', w2: '→ fd 1 (stdout)',
+      r1c: 'fresh', w1c: 'closed', r2c: 'open', w2c: 'fresh',
+      active: ['p-pipe1', 'n-cmd1', 'p-pipe2'], highlight: ['n-cmd1'], flow: ['a2', 'a3'],
+      msg: 'Filho 1 (grep). in_fd=3: dup2(3, 0) → stdin lê do Cano 1. Fecha fd 3. cmds[2] existe: dup2(5, 1) → stdout escreve no Cano 2. Fecha fds 4 e 5. execvp("grep").',
+      code: 'if (pid == 0) {\n    dup2(in_fd, 0); close(in_fd);  // stdin ← R1 (fd 3)\n    if (cmds[i + 1]) {\n        dup2(fd[1], 1);              // stdout → W2 (fd 5)\n        close(fd[0]);               // fecha R2 (fd 4) no filho\n        close(fd[1]);               // fecha W2 bruto (fd 5) no filho\n    }\n    execvp(cmds[i][0], cmds[i]);\n    exit(1);\n}'
+    },
+    {
+      title: 'Iteração 1 — Pai arruma fds',
+      i: '1 → 2', infd: '4 (Cano 2 R)',
+      r1: 'fechado', w1: 'fechado', r2: '4', w2: 'fechado',
+      r1c: 'closed', w1c: 'closed', r2c: 'open', w2c: 'closed',
+      active: ['n-cmd1', 'p-pipe2', 'n-cmd2'], highlight: [], flow: ['a2', 'a3'],
+      msg: 'Pai (após fork). in_fd=3: close(3) — fecha R1. cmds[2] existe: close(fd[1]=5) — fecha W2 no pai. Guarda in_fd = fd[0] = 4 (R2). i++.',
+      code: 'if (in_fd != 0) close(in_fd);  // fecha R1 (fd 3)\nif (cmds[i + 1]) {\n    close(fd[1]);    // fecha W2 (fd 5) no pai\n    in_fd = fd[0];  // in_fd = 4 (R2)\n}\ni++;'
+    },
+    {
+      title: 'Iteração 2 — sem pipe (último comando)',
+      i: '2', infd: '4 (Cano 2 R)',
+      r1: 'fechado', w1: 'fechado', r2: '4', w2: 'fechado',
+      r1c: 'closed', w1c: 'closed', r2c: 'open', w2c: 'closed',
+      active: ['p-pipe2', 'n-cmd2', 'n-stdout'], highlight: [], flow: ['a3'],
+      msg: 'cmds[3] é NULL: não há próximo comando. A condição curto-circuita e pipe() NÃO é chamado. O wc escreverá direto para o stdout herdado (a tela).',
+      code: 'if (cmds[i + 1] && pipe(fd) < 0)\n    return 1;\n// cmds[3] == NULL → condição falsa, sem pipe()'
+    },
+    {
+      title: 'Iteração 2 — fork() → Filho 2 (wc)',
+      i: '2', infd: '4 (Cano 2 R)',
+      r1: 'fechado', w1: 'fechado', r2: '→ fd 0 (stdin)', w2: 'fechado',
+      r1c: 'closed', w1c: 'closed', r2c: 'fresh', w2c: 'closed',
+      active: ['p-pipe2', 'n-cmd2', 'n-stdout'], highlight: ['n-cmd2'], flow: ['a4', 'a5'],
+      msg: 'Filho 2 (wc). in_fd=4: dup2(4, 0) → stdin lê do Cano 2. Fecha fd 4. cmds[3]==NULL: stdout NÃO é redirecionado — a saída do wc vai direto para a tela. execvp("wc").',
+      code: 'if (pid == 0) {\n    dup2(in_fd, 0); close(in_fd);  // stdin ← R2 (fd 4)\n    // cmds[i+1] == NULL → stdout vai para a tela\n    execvp(cmds[i][0], cmds[i]);\n    exit(1);\n}'
+    },
+    {
+      title: 'Fim — Pai fecha e espera com wait()',
+      i: 'loop encerrado', infd: 'fechado',
+      r1: 'fechado', w1: 'fechado', r2: 'fechado', w2: 'fechado',
+      r1c: 'closed', w1c: 'closed', r2c: 'closed', w2c: 'closed',
+      active: ['n-stdout'], highlight: [], flow: ['a4', 'a5'],
+      msg: 'Pai fecha in_fd=4 (R2). cmds[3]==NULL: o while encerra. Pai entra em wait(): coleta os 3 filhos um a um. Se algum não terminou normalmente ou saiu com status != 0, retorna 1. Se todos ok, retorna 0.',
+      code: 'if (in_fd != 0) close(in_fd); // fecha R2 (fd 4)\n// while(cmds[3]) → falso, loop encerra\nwhile (wait(&status) > 0)\n    if (!WIFEXITED(status) || WEXITSTATUS(status))\n        return 1;\nreturn 0;'
+    }
+  ];
+
+  var cur = 0;
+  var nodeIds = ['n-stdin','a0','n-cmd0','a1','p-pipe1','a2','n-cmd1','a3','p-pipe2','a4','n-cmd2','a5','n-stdout'];
+
+  function render() {
+    var s = steps[cur];
+    // pipeline
+    nodeIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.classList.remove('active','highlight','flow');
+    });
+    (s.active || []).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    });
+    (s.highlight || []).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('highlight');
+    });
+    (s.flow || []).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.classList.add('active', 'flow');
+    });
+
+    // vars
+    document.getElementById('tr-i').textContent = s.i;
+    document.getElementById('tr-infd').textContent = s.infd;
+
+    // fds
+    function setFd(id, text, cls) {
+      var el = document.getElementById(id);
+      el.textContent = text;
+      el.className = 'fd-pill ' + cls;
+    }
+    setFd('fd-r1', 'Cano1-R: ' + s.r1, s.r1c);
+    setFd('fd-w1', 'Cano1-W: ' + s.w1, s.w1c);
+    setFd('fd-r2', 'Cano2-R: ' + s.r2, s.r2c);
+    setFd('fd-w2', 'Cano2-W: ' + s.w2, s.w2c);
+
+    document.getElementById('tr-title').textContent = s.title;
+    document.getElementById('tr-msg').textContent = s.msg;
+    document.getElementById('tr-code').textContent = s.code;
+    document.getElementById('tr-count').textContent = 'passo ' + (cur + 1) + ' / ' + steps.length;
+    document.getElementById('tr-prev').disabled = cur === 0;
+    document.getElementById('tr-next').disabled = cur === steps.length - 1;
+  }
+
+  document.getElementById('tr-prev').addEventListener('click', function() { if (cur > 0) { cur--; render(); } });
+  document.getElementById('tr-next').addEventListener('click', function() { if (cur < steps.length - 1) { cur++; render(); } });
+  document.getElementById('tr-reset').addEventListener('click', function() { cur = 0; render(); });
+  render();
+})();
+</script>
+
+<script>
+(function () {
+  function initToc() {
+    if (window.innerWidth > 860) return;
+    var toc = document.querySelector('nav.toc');
+    if (!toc) return;
+    var ol = toc.querySelector('ol');
+    var label = toc.querySelector('.label');
+    if (!ol || !label) return;
+    var arrow = document.createElement('span');
+    arrow.setAttribute('aria-hidden', 'true');
+    arrow.textContent = ' ▾';
+    arrow.style.cssText = 'display:inline-block;transition:transform .2s;margin-left:auto;flex-shrink:0;';
+    label.appendChild(arrow);
+    ol.style.display = 'none';
+    label.setAttribute('role', 'button');
+    label.setAttribute('aria-expanded', 'false');
+    label.setAttribute('tabindex', '0');
+    function toggle() {
+      var isOpen = ol.style.display !== 'none';
+      ol.style.display = isOpen ? 'none' : '';
+      label.setAttribute('aria-expanded', String(!isOpen));
+      arrow.style.transform = isOpen ? '' : 'rotate(180deg)';
+    }
+    label.addEventListener('click', toggle);
+    label.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initToc);
+  } else {
+    initToc();
+  }
+})();
+</script>
