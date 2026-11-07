@@ -127,98 +127,89 @@ void	serialize(json j)
 	}
 }
 
+int	parser(json *dst, FILE *stream);
+
 int	parse_int(json *dst, FILE *stream)
 {
-	int n = 0;
+	int	n;
 
-	fscanf(stream, "%d", &n);
+	if (fscanf(stream, "%d", &n) != 1)
+	{
+		unexpected(stream);
+		return (-1);
+	}
 	dst->type = INTEGER;
 	dst->integer = n;
 	return (1);
 }
 
-char *get_str(FILE *stream)
+char	*get_str(FILE *stream)
 {
-	char *res = calloc(4096, sizeof(char));
-	int i = 0;
-	char c = getc(stream);
+	char	*res = calloc(4096, sizeof(char));
+	int		i = 0;
+	int		c;
 
+	getc(stream);
 	while (1)
 	{
 		c = getc(stream);
-		
 		if (c == '"')
 			break ;
-		if (c == EOF)
-		{
-			unexpected(stream);
-			return NULL;
-		}
 		if (c == '\\')
 			c = getc(stream);
+		if (c == EOF)
+		{
+			free(res);
+			unexpected(stream);
+			return (NULL);
+		}
 		res[i++] = c;
 	}
 	return (res);
 }
 
-int parse_map(json *dst, FILE *stream)
+int	parse_map(json *dst, FILE *stream)
 {
+	pair	*cur;
+
 	dst->type = MAP;
 	dst->map.size = 0;
 	dst->map.data = NULL;
-	char c = getc(stream);
-
-	if (peek(stream) == '}')
-		return 1;
-
+	getc(stream);
+	if (accept(stream, '}'))
+		return (1);
 	while (1)
 	{
-		c = peek(stream);
-		if (c != '"')
+		if (peek(stream) != '"')
 		{
 			unexpected(stream);
-			return -1;
+			return (-1);
 		}
 		dst->map.data = realloc(dst->map.data, (dst->map.size + 1) * sizeof(pair));
-		pair *current = &dst->map.data[dst->map.size];
-		current->key = get_str(stream);
-		if (current->key == NULL)
-			return -1;
+		cur = &dst->map.data[dst->map.size];
+		cur->key = get_str(stream);
+		if (cur->key == NULL)
+			return (-1);
 		dst->map.size++;
-		if (expect(stream, ':') == 0)
-			return -1;
-		if (argo(&current->value, stream) == -1)
-			return -1;
-		c = peek(stream);
-		if (c == '}')
-		{
-			accept(stream ,c);
-			break ;
-		}
-		if (c == ',')
-			accept(stream, c);
-		else
-		{
-			unexpected(stream);
-			return -1;
-		}
+		if (!expect(stream, ':'))
+			return (-1);
+		if (parser(&cur->value, stream) == -1)
+			return (-1);
+		if (accept(stream, '}'))
+			return (1);
+		if (!expect(stream, ','))
+			return (-1);
 	}
-	return 1;
 }
 
-
-int parser(json *dst, FILE *stream)
+int	parser(json *dst, FILE *stream)
 {
-	int c = peek(stream);
+	int	c = peek(stream);
 
-	if (c == EOF)
-	{
-		unexpected(stream);
-		return -1;
-	}
-	if (isdigit(c))
+	dst->type = INTEGER;
+	if (isdigit(c) || c == '-')
 		return (parse_int(dst, stream));
-	else if (c == '"')
+	if (c == '"')
 	{
 		dst->type = STRING;
 		dst->string = get_str(stream);
@@ -226,21 +217,17 @@ int parser(json *dst, FILE *stream)
 			return (-1);
 		return (1);
 	}
-	else if (c == '{')
+	if (c == '{')
 		return (parse_map(dst, stream));
-	else
-	{
-		unexpected(stream);
-		return -1;
-	}
-	return (1);
+	unexpected(stream);
+	return (-1);
 }
 
-int argo(json *dst, FILE *stream)
+int	argo(json *dst, FILE *stream)
 {
 	if (parser(dst, stream) == -1)
-		return -1;
-	return 1;
+		return (-1);
+	return (1);
 }
 
 int	main(int argc, char **argv)
