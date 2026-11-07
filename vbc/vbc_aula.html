@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Aula Animada VBC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Página: tokens claro/escuro. O "palco" do vídeo é sempre escuro, como uma tela de vídeo. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --fg: #1b2230; --muted: #5b6577; --line: #d9dee7; --accent: #3b4fd8;
+  --font-display: "Bricolage Grotesque", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* palco */
+  --s-bg: #0f1320; --s-panel: #171c2c; --s-line: #2a3248; --s-fg: #e8ecf4; --s-muted: #8f9bb3;
+  --s-accent: #8b9bff; --s-num: #f0a75a; --s-num-soft: #3a2a17; --s-add: #7aa7ff; --s-add-soft: #1d2a47;
+  --s-mul: #5fd29e; --s-mul-soft: #16352a; --s-err: #ff8378; --s-err-soft: #3d1d1b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --bg: #0b0e15; --surface: #151a25; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343; --accent: #8b9bff; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --bg: #0b0e15; --surface: #151a25; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343; --accent: #8b9bff; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--font-body); }
+.page { max-width: 1120px; margin: 0 auto; padding: 28px max(16px, env(safe-area-inset-left, 0px)) 48px; }
+.page h1 { font-family: var(--font-display); font-weight: 800; font-size: clamp(26px, 4vw, 36px); margin: 0 0 4px; }
+.page .lead { color: var(--muted); margin: 0 0 18px; }
+
+/* Player */
+.player { background: #000; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); }
+.player:fullscreen { border-radius: 0; border: 0; display: flex; flex-direction: column; justify-content: center; }
+.viewport { position: relative; width: 100%; overflow: hidden; background: var(--s-bg); margin: 0 auto; }
+.stage { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0;
+  background: radial-gradient(1200px 600px at 80% -10%, #1c2340 0%, var(--s-bg) 60%); color: var(--s-fg);
+  font-family: var(--font-body); overflow: hidden; }
+.bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #0c0f18; color: #e8ecf4; flex-wrap: wrap; }
+.bar button, .bar select { font: 600 14px var(--font-body); background: #1b2133; color: #e8ecf4; border: 1px solid #2a3248; border-radius: 6px; padding: 6px 12px; cursor: pointer; }
+.bar button:focus-visible, .bar select:focus-visible, .chap button:focus-visible { outline: 2px solid #8b9bff; outline-offset: 2px; }
+.bar button.on { border-color: #8b9bff; color: #b9c2ff; }
+.bar .time { font: 13px var(--font-mono); color: #8f9bb3; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.track { position: relative; flex: 1 1 200px; min-width: 120px; height: 28px; display: flex; align-items: center; }
+.track input { width: 100%; margin: 0; accent-color: #8b9bff; position: relative; z-index: 1; }
+.track .mark { position: absolute; top: 4px; width: 2px; height: 6px; background: #4a5577; }
+.chap { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 14px; }
+.chap button { font: 13px var(--font-body); background: var(--surface); color: var(--fg); border: 1px solid var(--line); border-radius: 99px; padding: 4px 12px; cursor: pointer; }
+.chap button.cur { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.hint { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+/* Overlay de início */
+.start { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(8, 10, 18, .72); z-index: 5; cursor: pointer; border: 0; width: 100%; color: #fff; }
+.start span { font: 800 44px var(--font-display); padding: 22px 48px; border-radius: 16px; background: #3b4fd8; box-shadow: 0 20px 60px rgba(59, 79, 216, .45); }
+.start[hidden] { display: none; }
+
+/* ───────── elementos do palco ───────── */
+.sc { position: absolute; inset: 0; padding: 48px 60px; }
+.title { font: 800 40px var(--font-display); margin: 0 0 6px; letter-spacing: -.01em; }
+.kicker { font: 600 15px var(--font-body); color: var(--s-accent); text-transform: uppercase; letter-spacing: .14em; }
+.mono { font-family: var(--font-mono); }
+[data-at] { opacity: 0; transform: translateY(14px); transition: opacity .55s ease, transform .55s ease; }
+[data-at].on { opacity: 1; transform: none; }
+svg [data-at] { transform: none; }
+
+.cap { position: absolute; left: 80px; right: 80px; bottom: 26px; text-align: center; z-index: 3; }
+.cap div { display: inline-block; font: 600 25px/1.4 var(--font-body); background: rgba(5, 7, 14, .78); padding: 10px 22px; border-radius: 10px; max-width: 1080px; transition: opacity .25s; }
+.cap code, .sc code { font-family: var(--font-mono); color: #ffd28a; font-size: .95em; }
+
+.center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding-bottom: 130px; }
+.hero { font: 800 190px/1 var(--font-display); margin: 10px 0; letter-spacing: -.04em;
+  background: linear-gradient(90deg, var(--s-add), var(--s-mul) 55%, var(--s-num)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.sub { font-size: 30px; color: var(--s-muted); margin: 0 0 30px; }
+.sub b { color: var(--s-fg); font-family: var(--font-mono); }
+.chips { display: flex; gap: 14px; }
+.chips span { font: 20px var(--font-mono); background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 10px; padding: 10px 18px; }
+
+.bigexpr { font: 600 110px var(--font-mono); text-align: center; margin: 40px 0 30px; letter-spacing: .06em; position: relative; }
+.bigexpr .g { border-bottom: 8px solid transparent; transition: border-color .5s; padding-bottom: 2px; }
+.bigexpr .g.on { border-color: var(--s-mul); }
+.row { font: 34px var(--font-mono); background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 12px; padding: 16px 26px; margin: 14px auto; width: 880px; display: flex; justify-content: space-between; align-items: center; }
+.row .lbl { font: 600 20px var(--font-body); color: var(--s-muted); width: 230px; }
+.row .res { font-weight: 600; }
+.bad { color: var(--s-err); } .good { color: var(--s-mul); }
+
+/* gramática */
+.gstack { position: absolute; left: 90px; top: 150px; width: 640px; }
+.gbox { border-radius: 14px; padding: 18px 24px; border: 2px solid; margin-bottom: 52px; position: relative; }
+.gbox h3 { margin: 0 0 4px; font: 600 28px var(--font-mono); }
+.gbox p { margin: 0; font: 22px var(--font-mono); color: var(--s-fg); }
+.gbox.sum { background: var(--s-add-soft); border-color: var(--s-add); } .gbox.sum h3 { color: var(--s-add); }
+.gbox.prod { background: var(--s-mul-soft); border-color: var(--s-mul); } .gbox.prod h3 { color: var(--s-mul); }
+.gbox.fac { background: var(--s-num-soft); border-color: var(--s-num); } .gbox.fac h3 { color: var(--s-num); }
+.down { position: absolute; left: 50px; font: 600 18px var(--font-body); color: var(--s-muted); }
+.side { position: absolute; left: 790px; top: 170px; width: 420px; }
+.side .note { background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 12px; padding: 18px 22px; font-size: 22px; line-height: 1.45; margin-bottom: 18px; }
+.side .note b { color: var(--s-accent); }
+
+/* given: cards */
+.cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 26px; }
+.card { background: var(--s-panel); border: 2px solid var(--s-line); border-radius: 14px; padding: 16px 18px; min-height: 196px; transition: border-color .4s, opacity .55s, transform .55s; }
+.card.hot { border-color: var(--s-accent); }
+.card .n { font: 600 14px var(--font-mono); color: var(--s-accent); }
+.card h4 { font: 600 22px var(--font-display); margin: 4px 0 12px; }
+.card .before, .card .after { font: 17px/1.5 var(--font-mono); padding: 6px 10px; border-radius: 6px; margin-top: 6px; }
+.card .before { background: var(--s-err-soft); color: var(--s-err); text-decoration: line-through; }
+.card .after { background: var(--s-mul-soft); color: var(--s-mul); }
+
+/* fita */
+.tape { display: flex; gap: 6px; position: relative; justify-content: center; }
+.cell { width: 64px; height: 72px; border-radius: 8px; background: var(--s-panel); border: 1px solid var(--s-line); display: grid; place-items: center; font: 600 34px var(--font-mono); position: relative; transition: opacity .4s, color .4s; }
+.cell .i { position: absolute; bottom: -22px; font: 13px var(--font-mono); color: var(--s-muted); }
+.cell.nul { font-size: 22px; color: var(--s-muted); }
+.cell.read { opacity: .35; }
+.cursor { position: absolute; top: -8px; height: 88px; border: 3px solid var(--s-accent); border-radius: 11px; transition: left .45s cubic-bezier(.3,.7,.3,1), border-color .3s, box-shadow .3s; pointer-events: none; box-shadow: 0 0 24px rgba(139, 155, 255, .45); }
+.cursor.err { border-color: var(--s-err); box-shadow: 0 0 24px rgba(255, 131, 120, .55); }
+.cursor.ok { border-color: var(--s-mul); box-shadow: 0 0 24px rgba(95, 210, 158, .55); }
+.cursor::after { content: "*s"; position: absolute; top: -30px; left: 50%; transform: translateX(-50%); font: 600 16px var(--font-mono); color: inherit; }
+.cursor { color: var(--s-accent); } .cursor.err { color: var(--s-err); } .cursor.ok { color: var(--s-mul); }
+.tape.sm .cell { width: 44px; height: 52px; font-size: 26px; }
+.tape.sm .cell.nul { font-size: 17px; }
+.tape.sm .cursor { height: 68px; }
+
+.callbox { margin: 70px auto 0; width: 900px; display: grid; gap: 16px; }
+.call { font: 26px var(--font-mono); background: var(--s-panel); border: 1px solid var(--s-line); border-left: 5px solid var(--s-accent); border-radius: 10px; padding: 14px 20px; }
+.call .r { color: var(--s-muted); font-size: 22px; margin-left: 10px; }
+
+/* trace */
+.panel { position: absolute; background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 14px; padding: 16px 18px; }
+.panel h5 { margin: 0 0 12px; font: 600 13px var(--font-body); text-transform: uppercase; letter-spacing: .12em; color: var(--s-muted); }
+.stk { display: flex; flex-direction: column-reverse; gap: 6px; }
+.frame { font: 17px var(--font-mono); background: var(--s-bg); border: 1px solid var(--s-line); border-radius: 8px; padding: 6px 12px; display: flex; justify-content: space-between; gap: 10px; }
+.frame:last-child { border-color: var(--s-accent); color: #c3cbff; box-shadow: 0 0 0 1px var(--s-accent); }
+.frame .lf { color: var(--s-num); font-size: 16px; }
+.frame.in { animation: slidein .35s ease; }
+@keyframes slidein { from { opacity: 0; transform: translateY(-10px); } }
+.tree text { font-family: var(--font-mono); }
+.node.new { animation: pop .5s cubic-bezier(.3,1.6,.5,1); transform-box: fill-box; transform-origin: center; }
+@keyframes pop { from { transform: scale(.2); opacity: 0; } }
+.node.hi rect { stroke-width: 4; filter: drop-shadow(0 0 10px rgba(255,255,255,.35)); }
+.edge { stroke: var(--s-line); stroke-width: 3; }
+
+.term { position: absolute; font: 24px/1.5 var(--font-mono); background: #05070d; border: 1px solid var(--s-line); border-radius: 10px; padding: 14px 20px; }
+.term .p { color: var(--s-mul); }
+
+/* erros */
+.erow { display: grid; grid-template-columns: 1fr 420px; gap: 24px; align-items: center; background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 14px; padding: 26px 24px 30px; margin-bottom: 18px; transition: border-color .4s, opacity .55s, transform .55s; }
+.erow.hot { border-color: var(--s-err); }
+.erow .who { font: 19px var(--font-mono); color: var(--s-muted); margin-bottom: 8px; transition: opacity .4s; }
+.erow .out { font: 600 22px var(--font-mono); color: var(--s-err); transition: opacity .4s; }
+.erow .tape { justify-content: flex-start; }
+.dim { opacity: 0; }
+
+/* resumo */
+.check { list-style: none; padding: 0; margin: 26px 0 0; display: grid; gap: 12px; width: 1000px; }
+.check li { font: 24px var(--font-body); background: var(--s-panel); border: 1px solid var(--s-line); border-radius: 10px; padding: 12px 18px 12px 60px; position: relative; }
+.check li::before { content: "✓"; position: absolute; left: 20px; top: 10px; font: 800 26px var(--font-body); color: var(--s-mul); }
+.notr *, .notr *::after { transition: none !important; animation: none !important; }
+.motto { margin-top: 26px; font: 600 28px var(--font-display); color: var(--s-accent); }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>VBC: aula animada</h1>
+  <p class="lead">Uns 4 minutos, com narração e legendas. Espaço pausa, ← → voltam ou avançam 5 s.</p>
+
+  <div class="player" id="player">
+    <div class="viewport" id="viewport">
+      <div class="stage" id="stage">
+        <div id="scene"></div>
+        <div class="cap"><div id="cap"></div></div>
+      </div>
+      <button class="start" id="start" aria-label="Começar a aula"><span>▶ Assistir aula</span></button>
+    </div>
+    <div class="bar">
+      <button id="play" aria-label="Play">▶</button>
+      <span class="time" id="time">0:00 / 0:00</span>
+      <div class="track" id="track"><input type="range" id="seek" min="0" max="100" step="0.1" value="0" aria-label="Posição"></div>
+      <select id="speed" aria-label="Velocidade">
+        <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option>
+      </select>
+      <button id="narr" class="on" aria-pressed="true">🔊 Narração</button>
+      <button id="fs">Tela cheia</button>
+    </div>
+  </div>
+  <div class="chap" id="chap"></div>
+  <p class="hint">A narração usa a voz do seu navegador. Se ela estiver ruim ou não existir, desligue e siga pelas legendas: o vídeo espera a narração terminar antes de passar para a próxima frase.</p>
+</div>
+
+<script>
+(function () {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/* ───────────── parser em JS, igual ao vbc.c, gravando cada passo ───────────── */
+function show(n) {
+  if (!n) return '';
+  if (n.t === 'VAL') return String(n.v);
+  return '(' + show(n.l) + (n.t === 'ADD' ? '+' : '*') + show(n.r) + ')';
+}
+function bare(s) { return s.length > 1 && s[0] === '(' ? s.slice(1, -1) : s; }
+
+function buildTrace(str) {
+  const steps = []; const stack = []; let p = 0; let made = 0;
+  const ch = () => (p < str.length ? str[p] : '');
+  const shown = (c) => (c ? "'" + c + "'" : "'\\0'");
+  const snap = (text, say, hi) => steps.push({
+    p, made, hi: hi === undefined ? -1 : hi, text, say,
+    stack: stack.map((f) => ({ n: f.n, left: f.left ? bare(show(f.left)) : null })),
+  });
+  const mk = (o) => { o.id = made++; return o; };
+
+  function factor() {
+    stack.push({ n: 'parse_factor' });
+    let r = null;
+    if (/[0-9]/.test(ch())) {
+      r = mk({ t: 'VAL', v: +ch() }); p++;
+      snap('<code>parse_factor</code> vê ' + shown(String(r.v)) + ': é dígito → cria <code>VAL ' + r.v + '</code>',
+           'factor vê o ' + r.v + '. É dígito: vira uma folha da árvore.', r.id);
+    } else if (ch() === '(') {
+      p++;
+      snap("<code>parse_factor</code> vê '(' → chama <code>parse_sum</code> para o que está dentro",
+           'factor vê abre parênteses, e chama sum de novo, para resolver o que está lá dentro.');
+      r = sum();
+      if (r && ch() === ')') {
+        p++;
+        snap("<code>expect(')')</code> ok → o grupo <code>" + esc(show(r)) + '</code> volta como um fator só',
+             'Fecha parênteses confirmado. O grupo inteiro volta como um único fator.', r.id);
+      } else r = null;
+    }
+    stack.pop(); return r;
+  }
+  function bin(name, short, sub, op, type, opName) {
+    return function () {
+      const f = { n: name, left: null }; stack.push(f);
+      let left = sub();
+      if (!left) { stack.pop(); return null; }
+      f.left = left;
+      while (ch() === op) {
+        p++;
+        snap('<code>' + name + '</code>: <code>accept(\'' + op + '\')</code> ok → pede o lado direito',
+             short + ' encontrou ' + opName + '. Consome e pede o lado direito.');
+        const right = sub();
+        if (!right) { stack.pop(); return null; }
+        left = mk({ t: type, l: left, r: right }); f.left = left;
+        snap('<code>' + name + '</code> junta os dois num nó <code>' + type + '</code>: ' + esc(bare(show(left))),
+             short + ' junta os dois lados num nó ' + (type === 'ADD' ? 'de soma.' : 'de multiplicação.'), left.id);
+      }
+      snap('<code>' + name + '</code>: próximo é ' + esc(shown(ch())) + ", não '" + op + "' → devolve " + esc(bare(show(left))),
+           short + ' não encontra outro ' + opName + ', então devolve o que montou.', left.id);
+      stack.pop(); return left;
+    };
+  }
+  let sum;
+  const product = bin('parse_product', 'product', factor, '*', 'MULTI', 'asterisco');
+  sum = bin('parse_sum', 'sum', product, '+', 'ADD', 'sinal de mais');
+
+  stack.push({ n: 'parse_expr' });
+  snap('<code>main</code> chama <code>parse_expr("' + esc(str) + '")</code>',
+       'O main chama parse expr. Ele chama sum, que chama product, que chama factor.');
+  const root = sum();
+  const val = (n) => (n.t === 'VAL' ? n.v : n.t === 'ADD' ? val(n.l) + val(n.r) : val(n.l) * val(n.r));
+  snap("<code>*s == '\\0'</code>: não sobrou nada → árvore pronta. <code>eval_tree</code> → " + val(root),
+       'Não sobrou nada na string. A árvore está pronta, e o resultado é ' + val(root) + '.', root.id);
+  return { steps, root };
+}
+
+/* ───────────── árvore em SVG ───────────── */
+const COL = { VAL: ['var(--s-num)', 'var(--s-num-soft)'], ADD: ['var(--s-add)', 'var(--s-add-soft)'], MULTI: ['var(--s-mul)', 'var(--s-mul-soft)'] };
+function layout(root, W) {
+  const list = [];
+  (function walk(n, d) { if (!n) return; walk(n.l, d + 1); n.depth = d; list.push(n); walk(n.r, d + 1); })(root, 0);
+  list.forEach((n, i) => { n.x = (i + 0.5) * W / list.length; n.y = 40 + n.depth * 92; });
+  return list;
+}
+function treeSVG(root, W, H, o) {
+  o = o || {};
+  const vis = o.vis || (() => true);
+  const list = layout(root, W);
+  let edges = '', nodes = '';
+  list.forEach((n) => {
+    if (!vis(n.id)) return;
+    [n.l, n.r].forEach((c) => { if (c && n.t !== 'VAL') edges += '<line class="edge" x1="' + n.x + '" y1="' + (n.y + 20) + '" x2="' + c.x + '" y2="' + (c.y - 20) + '"/>'; });
+  });
+  list.forEach((n) => {
+    if (!vis(n.id)) return;
+    const [stroke, fill] = COL[n.t];
+    const label = n.t === 'VAL' ? String(n.v) : n.t === 'ADD' ? 'ADD +' : 'MULTI ×';
+    const w = n.t === 'VAL' ? 64 : 120;
+    const cls = 'node' + (o.newId === n.id ? ' new' : '') + (o.hi === n.id ? ' hi' : '');
+    nodes += '<g class="' + cls + '"><rect x="' + (n.x - w / 2) + '" y="' + (n.y - 20) + '" width="' + w + '" height="40" rx="9" fill="' + fill + '" stroke="' + stroke + '" stroke-width="2"/>' +
+      '<text x="' + n.x + '" y="' + (n.y + 7) + '" text-anchor="middle" font-size="20" font-weight="600" fill="' + stroke + '">' + label + '</text></g>';
+    if (o.badge && o.badge(n)) {
+      const b = o.badge(n);
+      nodes += '<g data-at="' + b.at + '"><text x="' + n.x + '" y="' + (n.y + 46) + '" text-anchor="middle" font-size="18" fill="var(--s-fg)">' + esc(b.text) + '</text></g>';
+    }
+  });
+  return '<svg class="tree" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">' + edges + nodes + '</svg>';
+}
+
+/* ───────────── fita (string + cursor) ───────────── */
+function tapeHTML(str, small) {
+  let h = '<div class="tape' + (small ? ' sm' : '') + '">';
+  for (let i = 0; i <= str.length; i++) {
+    h += '<div class="cell' + (i === str.length ? ' nul' : '') + '">' + (i < str.length ? esc(str[i]) : '\\0') + '<span class="i">' + i + '</span></div>';
+  }
+  return h + '<div class="cursor"></div></div>';
+}
+function setCursor(tapeEl, pos, state) {
+  const cells = tapeEl.querySelectorAll('.cell');
+  const c = cells[Math.min(pos, cells.length - 1)];
+  const cur = tapeEl.querySelector('.cursor');
+  cur.style.left = (c.offsetLeft - 7) + 'px';
+  cur.style.width = (c.offsetWidth + 14) + 'px';
+  cur.className = 'cursor' + (state ? ' ' + state : '');
+  cells.forEach((el, i) => el.classList.toggle('read', i < pos));
+}
+
+/* ───────────── cenas ───────────── */
+const STEP = 3.6;
+const scenes = [];
+
+scenes.push({
+  title: 'Abertura', dur: 9,
+  html: '<div class="sc center"><div class="kicker" data-at="0.2">Exam Rank 04 · aula animada</div>' +
+    '<div class="hero" data-at="0.7">vbc</div>' +
+    '<p class="sub" data-at="1.5">uma calculadora de <b>+</b> <b>*</b> e <b>( )</b> em C</p>' +
+    '<div class="chips"><span data-at="2.6">3+4*5 → 23</span><span data-at="3.2">(3+4)*5 → 35</span><span data-at="3.8">1+ → Unexpected end of input</span></div></div>',
+  caps: [{ at: 0, text: 'Nesta aula: como o vbc lê uma conta, monta uma árvore e calcula o resultado.' }],
+});
+
+scenes.push({
+  title: 'O problema', dur: 16,
+  html: '<div class="sc"><div class="kicker" data-at="0">O problema</div>' +
+    '<div class="bigexpr" data-at="0.3">3 + <span class="g" id="grp">4 * 5</span></div>' +
+    '<div class="row" data-at="2.6"><span class="lbl">esquerda → direita</span><span>(3 + 4) * 5</span><span class="res bad">= 35 ✗</span></div>' +
+    '<div class="row" data-at="7.5"><span class="lbl">com precedência</span><span>3 + (4 * 5)</span><span class="res good">= 23 ✓</span></div></div>',
+  caps: [
+    { at: 0, text: 'Quanto é <code>3+4*5</code>?', say: 'Quanto é 3 mais 4 vezes 5?' },
+    { at: 2.6, text: 'Lendo da esquerda para a direita daria 35. Errado.' },
+    { at: 7.5, text: 'A multiplicação vem antes: 3 + 20 = 23.', say: 'A multiplicação vem antes: 3 mais 20, igual a 23.' },
+    { at: 11.5, text: 'O truque: uma função para cada nível de prioridade.' },
+  ],
+  update(t, root) { root.querySelector('#grp').classList.toggle('on', t >= 7.5); },
+});
+
+scenes.push({
+  title: 'Gramática', dur: 21,
+  html: '<div class="sc"><div class="kicker" data-at="0">A ideia</div><div class="title" data-at="0">3 funções, uma por nível</div>' +
+    '<div class="gstack">' +
+    '<div class="gbox sum" data-at="1"><h3>parse_sum</h3><p>product { \'+\' product }</p></div>' +
+    '<div class="down" style="top:112px" data-at="4.5">↓ chama</div>' +
+    '<div class="gbox prod" data-at="4.5"><h3>parse_product</h3><p>factor { \'*\' factor }</p></div>' +
+    '<div class="down" style="top:270px" data-at="8.5">↓ chama</div>' +
+    '<div class="gbox fac" data-at="8.5"><h3>parse_factor</h3><p>dígito  |  \'(\' sum \')\'</p></div>' +
+    '</div>' +
+    '<svg style="position:absolute;left:0;top:0" width="1280" height="720"><g data-at="12.5">' +
+    '<path d="M730 465 C 800 465, 800 200, 730 200" fill="none" stroke="var(--s-num)" stroke-width="3" stroke-dasharray="8 6" marker-end="url(#ah)"/>' +
+    '<text x="802" y="338" fill="var(--s-num)" font-size="18" font-family="IBM Plex Mono">( volta</text></g>' +
+    '<defs><marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--s-num)"/></marker></defs></svg>' +
+    '<div class="side" style="left:880px;top:200px;width:360px">' +
+    '<div class="note" data-at="16"><b>Mais fundo resolve primeiro.</b><br>sum espera product terminar, então <code>*</code> ganha de <code>+</code>.</div></div></div>',
+  caps: [
+    { at: 0, text: '<code>parse_sum</code>: uma soma de produtos, separados por +.', say: 'sum é uma soma de produtos, separados pelo sinal de mais.' },
+    { at: 4.5, text: '<code>parse_product</code>: um produto de fatores, separados por *.', say: 'product é um produto de fatores, separados por asterisco.' },
+    { at: 8.5, text: '<code>parse_factor</code>: um dígito, ou uma soma inteira entre parênteses.', say: 'factor é um dígito, ou uma soma inteira entre parênteses.' },
+    { at: 12.5, text: 'O parêntese chama <code>parse_sum</code> de novo: a prioridade recomeça lá dentro.', say: 'O parêntese chama sum de novo. A prioridade recomeça lá dentro.' },
+    { at: 16, text: 'Quem é chamado mais fundo resolve primeiro: por isso * ganha de +.', say: 'Quem é chamado mais fundo resolve primeiro. Por isso a multiplicação ganha da soma.' },
+  ],
+});
+
+const FIXES = [
+  ['Include', '#include &lt;malloc.h&gt;', '#include &lt;stdlib.h&gt;', 'Troque <code>malloc.h</code> por <code>stdlib.h</code>.', 'Troque malloc ponto h por stdlib ponto h.'],
+  ['Linha lixo', 'node *n(**s);', '(apagar a linha)', 'Apague a linha <code>node *n(**s);</code>. Ela não compila.', 'Apague a linha node n. Ela nem compila.'],
+  ['accept não compara', 'if (**s)', 'if (**s == c)', '<code>accept</code> consumia qualquer coisa. Ele tem que comparar com <code>c</code>.', 'accept consumia qualquer caractere. Ele tem que comparar com c.'],
+  ['O buraco //...', '//...', 'parse_factor\nparse_product\nparse_sum', 'No lugar do <code>//...</code> entram as 3 funções do parser.', 'No lugar dos três pontinhos entram as três funções do parser.'],
+  ['parse_expr', 'só destroy + NULL', 'ret = parse_sum(&amp;s);\nunexpected(*s);', '<code>parse_expr</code>: chama <code>parse_sum(&amp;s)</code> e imprime o erro se sobrar caractere.', 'parse expr chama sum, e imprime o erro se sobrar caractere no final.'],
+  ['eval_tree', '}   // sem return', 'return (0);', '<code>eval_tree</code>: <code>return (0)</code> no fim, senão <code>-Werror</code> não compila.', 'eval tree precisa de return zero no final, senão o menos W error não compila.'],
+];
+scenes.push({
+  title: 'Consertos na given', dur: 2 + FIXES.length * 4.4 + 1,
+  html: '<div class="sc"><div class="kicker" data-at="0">O que você recebe</div><div class="title" data-at="0">A given tem 6 consertos</div><div class="cards">' +
+    FIXES.map((f, i) => '<div class="card" data-at="' + (2 + i * 4.4) + '"><div class="n">' + (i + 1) + '</div><h4>' + f[0] + '</h4>' +
+      '<div class="before">' + f[1] + '</div><div class="after">' + f[2].replace(/\n/g, '<br>') + '</div></div>').join('') + '</div></div>',
+  caps: [{ at: 0, text: 'Na prova você recebe a given: quase tudo pronto, com bugs de propósito.' }]
+    .concat(FIXES.map((f, i) => ({ at: 2 + i * 4.4, text: f[3], say: f[4] }))),
+  update(t, root) {
+    root.querySelectorAll('.card').forEach((c, i) => c.classList.toggle('hot', t >= 2 + i * 4.4 && t < 2 + (i + 1) * 4.4));
+  },
+});
+
+scenes.push({
+  title: 'O cursor char **s', dur: 17,
+  html: '<div class="sc"><div class="kicker" data-at="0">Antes de rastrear</div><div class="title" data-at="0">Um cursor compartilhado: <span class="mono">char **s</span></div>' +
+    '<div style="margin-top:70px" id="tp">' + tapeHTML('3+4*5') + '</div>' +
+    '<div class="callbox">' +
+    '<div class="call" data-at="3.5">accept(s, \'+\')<span class="r">→ \'3\' ≠ \'+\' → retorna 0, cursor parado</span></div>' +
+    '<div class="call" data-at="7.5">isdigit(\'3\') → (*s)++<span class="r">→ cursor anda</span></div>' +
+    '<div class="call" data-at="11.5">accept(s, \'+\')<span class="r">→ igual! (*s)++ e retorna 1</span></div></div></div>',
+  caps: [
+    { at: 0, text: 'Todas as funções andam pela mesma string, com o mesmo cursor.' },
+    { at: 3.5, text: '<code>accept</code> só anda se o caractere for o esperado. Aqui não é.', say: 'accept só anda se o caractere for o esperado. Aqui não é.' },
+    { at: 7.5, text: '<code>(*s)++</code> anda o cursor, e quem chamou também vê.', say: 'Asterisco s mais mais anda o cursor, e quem chamou também vê a mudança.' },
+    { at: 11.5, text: 'Agora sim: <code>accept</code> encontra o + e anda.', say: 'Agora sim: accept encontra o sinal de mais e anda.' },
+  ],
+  update(t, root) {
+    const tp = root.querySelector('.tape');
+    if (t < 3.5) setCursor(tp, 0);
+    else if (t < 7.5) setCursor(tp, 0, 'err');
+    else if (t < 11.5) setCursor(tp, 1);
+    else setCursor(tp, 2, 'ok');
+  },
+});
+
+function traceScene(title, str) {
+  const tr = buildTrace(str);
+  let last = -1;
+  return {
+    title, dur: tr.steps.length * STEP + 1.2,
+    html: '<div class="sc"><div class="kicker">Rastreando</div><div class="title mono">./vbc \'' + esc(str) + '\'</div>' +
+      '<div style="margin-top:44px">' + tapeHTML(str) + '</div>' +
+      '<div class="panel" style="left:60px;top:300px;width:400px;height:330px"><h5>Pilha de chamadas</h5><div class="stk"></div></div>' +
+      '<div class="panel" style="left:490px;top:300px;width:730px;height:330px"><h5>Árvore sendo montada</h5><div class="tw"></div></div></div>',
+    caps: tr.steps.map((s, i) => ({ at: i * STEP, text: s.text, say: s.say })),
+    enter() { last = -1; },
+    update(t, root) {
+      const i = Math.min(tr.steps.length - 1, Math.floor(t / STEP));
+      if (i === last) return;
+      const s = tr.steps[i], prev = tr.steps[i - 1];
+      setCursor(root.querySelector('.tape'), s.p, i === tr.steps.length - 1 ? 'ok' : '');
+      const stk = root.querySelector('.stk');
+      stk.innerHTML = s.stack.map((f, k) => '<div class="frame' + (i === last + 1 && (!prev || k >= prev.stack.length) ? ' in' : '') + '"><span>' + f.n + '</span>' +
+        (f.left ? '<span class="lf">left = ' + esc(f.left) + '</span>' : '') + '</div>').join('');
+      const newId = prev && s.made > prev.made ? s.made - 1 : -1;
+      root.querySelector('.tw').innerHTML = treeSVG(tr.root, 694, 270, {
+        vis: (id) => id < s.made, newId: i === last + 1 ? newId : -1, hi: s.hi,
+      });
+      last = i;
+    },
+  };
+}
+scenes.push(traceScene('Rastreio: 3+4*5', '3+4*5'));
+
+const evalRoot = buildTrace('3+4*5').root;
+scenes.push({
+  title: 'eval_tree', dur: 15,
+  html: '<div class="sc"><div class="kicker">Calculando</div><div class="title"><span class="mono">eval_tree</span>: de baixo para cima</div>' +
+    '<div style="position:absolute;left:290px;top:170px">' + treeSVG(evalRoot, 700, 300, {
+      badge: (n) => n.t === 'VAL' ? { at: 1.5, text: '= ' + n.v } : n.t === 'MULTI' ? { at: 5, text: '4 × 5 = 20' } : { at: 8.5, text: '3 + 20 = 23' },
+    }) + '</div>' +
+    '<div class="term" style="left:470px;top:490px;width:340px" data-at="11.5"><span class="p">$</span> ./vbc \'3+4*5\'<br>23</div></div>',
+  caps: [
+    { at: 0, text: 'A given já calcula: <code>eval_tree</code> é recursivo.', say: 'A given já traz o cálculo: eval tree é recursivo.' },
+    { at: 1.5, text: 'Folha <code>VAL</code> devolve o próprio número.', say: 'Cada folha devolve o próprio número.' },
+    { at: 5, text: '<code>MULTI</code> multiplica os filhos: 4 × 5 = 20.', say: 'O nó de multiplicação multiplica os filhos: 4 vezes 5, 20.' },
+    { at: 8.5, text: '<code>ADD</code> soma: 3 + 20 = 23.', say: 'O nó de soma soma: 3 mais 20, 23.' },
+    { at: 11.5, text: 'O <code>main</code> imprime com <code>printf("%d\\n")</code> e libera a árvore.', say: 'O main imprime o resultado e libera a árvore.' },
+  ],
+});
+
+scenes.push(traceScene('Rastreio: (3+4)*5', '(3+4)*5'));
+
+const ERRS = [
+  { s: '1+', pos: 2, who: 'parse_factor: esperava dígito ou (', out: 'Unexpected end of input',
+    cap: '<code>1+</code>: depois do + o <code>parse_factor</code> encontra o fim da string.', say: 'Um mais: depois do sinal de mais, factor encontra o fim da string.' },
+  { s: '1+2)', pos: 3, who: 'parse_expr: sobrou caractere no fim', out: "Unexpected token ')'",
+    cap: '<code>1+2)</code>: a soma termina no 2, e o <code>parse_expr</code> vê que sobrou o <code>)</code>.', say: 'Um mais dois fecha parênteses: a soma termina, e parse expr vê que sobrou o parêntese.' },
+  { s: '((1+3)*12+(3*(2+6))', pos: 8, who: "expect(')'): veio '2' no lugar de ')'", out: "Unexpected token '2'",
+    cap: 'Dentro do parêntese, depois do 1 vem um 2. O <code>expect(\')\')</code> reclama.', say: 'Dentro do parêntese, depois do 1 vem um 2. O expect do fecha parênteses reclama.' },
+];
+const EGAP = 9;
+scenes.push({
+  title: 'Erros', dur: 1 + ERRS.length * EGAP + 6,
+  html: '<div class="sc"><div class="kicker" data-at="0">Erros</div><div class="title" data-at="0">Nenhum código extra: cada erro aparece sozinho</div><div style="margin-top:22px">' +
+    ERRS.map((e, i) => '<div class="erow" data-at="' + (1 + i * EGAP) + '"><div>' + tapeHTML(e.s, true) + '</div>' +
+      '<div><div class="who dim">' + esc(e.who) + '</div><div class="out dim">' + esc(e.out) + '</div></div></div>').join('') + '</div></div>',
+  caps: [{ at: 0, text: 'E quando a conta está errada?' }]
+    .concat(ERRS.map((e, i) => ({ at: 1 + i * EGAP, text: e.cap, say: e.say })))
+    .concat([{ at: 1 + ERRS.length * EGAP, text: 'Depois do erro: <code>destroy_tree</code>, devolve <code>NULL</code> até o <code>main</code>, que retorna 1.', say: 'Depois de imprimir o erro, cada função libera o que montou e devolve NULL, até o main, que retorna 1.' }]),
+  update(t, root) {
+    root.querySelectorAll('.erow').forEach((row, i) => {
+      const t0 = 1 + i * EGAP, e = ERRS[i];
+      const k = Math.max(0, t - t0 - 0.8);
+      const pos = Math.min(e.pos, Math.floor(k / (3.2 / e.pos)));
+      const done = k >= 3.4;
+      setCursor(row.querySelector('.tape'), t < t0 ? 0 : pos, done ? 'err' : '');
+      row.querySelector('.who').classList.toggle('dim', !done);
+      row.querySelector('.out').classList.toggle('dim', !(k >= 4.4));
+      row.classList.toggle('hot', t >= t0 && t < t0 + EGAP);
+    });
+  },
+});
+
+const CHECK = [
+  'Trocar <code>malloc.h</code> → <code>stdlib.h</code> e apagar <code>node *n(**s);</code>',
+  '<code>accept</code>: <code>if (**s == c)</code>',
+  '<code>eval_tree</code>: <code>return (0);</code> no final',
+  'Escrever <code>parse_product</code>: left, while accept, right, junta',
+  'Copiar como <code>parse_sum</code>: factor→product, * → +, MULTI→ADD',
+  '<code>parse_factor</code>: dígito / ( sum ) / unexpected',
+  '<code>parse_expr</code>: <code>parse_sum(&amp;s)</code> e <code>unexpected(*s)</code> se sobrar',
+];
+scenes.push({
+  title: 'Resumo', dur: 2 + CHECK.length * 1.8 + 7,
+  html: '<div class="sc"><div class="kicker" data-at="0">Resumo para a prova</div><div class="title" data-at="0">Ordem de ataque</div><ul class="check">' +
+    CHECK.map((c, i) => '<li data-at="' + (2 + i * 1.8) + '">' + c + '</li>').join('') + '</ul></div>',
+  caps: [
+    { at: 0, text: 'Resumo: a ordem para fazer na prova.' },
+    { at: 2 + CHECK.length * 1.8, text: 'Soma de produtos de fatores. Fator é dígito ou parêntese com soma dentro.' },
+  ],
+});
+
+/* ───────────── linha do tempo ───────────── */
+let total = 0;
+scenes.forEach((s) => { s.start = total; total += s.dur; });
+const cues = [];
+scenes.forEach((s, si) => s.caps.forEach((c) => cues.push({ T: s.start + c.at, text: c.text, say: c.say || c.text.replace(/<[^>]+>/g, ''), si })));
+cues.sort((a, b) => a.T - b.T);
+
+/* ───────────── player ───────────── */
+const stageEl = $('stage'), sceneEl = $('scene'), capEl = $('cap'), seek = $('seek'), viewport = $('viewport');
+let T = 0, playing = false, speed = 1, narr = true, curScene = -1, curCue = -1, held = 0, speaking = false, lastTs = 0;
+
+seek.max = total.toFixed(1);
+scenes.forEach((s) => {
+  const m = document.createElement('div'); m.className = 'mark'; m.style.left = (s.start / total * 100) + '%'; $('track').appendChild(m);
+  const b = document.createElement('button'); b.textContent = s.title; b.onclick = () => { go(s.start); if (!playing) toggle(); }; $('chap').appendChild(b);
+});
+
+function fit() {
+  const fsOn = document.fullscreenElement === $('player');
+  const w = viewport.parentElement.clientWidth;
+  let scale = w / 1280;
+  if (fsOn) scale = Math.min(scale, (window.innerHeight - 60) / 720);
+  stageEl.style.transform = 'scale(' + scale + ')';
+  viewport.style.width = (1280 * scale) + 'px';
+  viewport.style.height = (720 * scale) + 'px';
+}
+new ResizeObserver(fit).observe(document.body);
+document.addEventListener('fullscreenchange', fit);
+
+function fmt(x) { x = Math.max(0, Math.floor(x)); return Math.floor(x / 60) + ':' + String(x % 60).padStart(2, '0'); }
+
+function render() {
+  let si = scenes.length - 1;
+  for (let i = 0; i < scenes.length; i++) if (T < scenes[i].start + scenes[i].dur) { si = i; break; }
+  const sc = scenes[si];
+  if (si !== curScene) {
+    sceneEl.innerHTML = sc.html;
+    if (sc.enter) sc.enter();
+    curScene = si;
+    [...$('chap').children].forEach((b, i) => b.classList.toggle('cur', i === si));
+    void sceneEl.offsetWidth; // força layout para as transições funcionarem
+  }
+  const lt = T - sc.start;
+  sceneEl.querySelectorAll('[data-at]').forEach((el) => el.classList.toggle('on', lt >= +el.dataset.at));
+  if (sc.update) sc.update(lt, sceneEl);
+
+  let ci = -1;
+  for (let i = 0; i < cues.length; i++) if (cues[i].T <= T + 1e-6) ci = i; else break;
+  if (ci !== curCue) {
+    curCue = ci;
+    capEl.innerHTML = ci >= 0 ? cues[ci].text : '';
+    capEl.style.opacity = ci >= 0 ? 1 : 0;
+    if (playing && narr && ci >= 0) speak(cues[ci].say);
+  }
+  seek.value = T.toFixed(1);
+  $('time').textContent = fmt(T) + ' / ' + fmt(total);
+}
+
+/* narração */
+let voice = null;
+function pickVoice() {
+  const vs = window.speechSynthesis ? speechSynthesis.getVoices() : [];
+  voice = vs.find((v) => v.lang === 'pt-BR') || vs.find((v) => /^pt/i.test(v.lang)) || null;
+}
+if (window.speechSynthesis) { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'pt-BR'; if (voice) u.voice = voice;
+  u.rate = 1.08 * Math.min(speed, 1.4);
+  u.onend = u.onerror = () => { speaking = false; };
+  speaking = true; held = 0;
+  speechSynthesis.speak(u);
+}
+function hush() { if (window.speechSynthesis) speechSynthesis.cancel(); speaking = false; }
+
+function tick(ts) {
+  const dt = lastTs ? Math.min(0.1, (ts - lastTs) / 1000) : 0;
+  lastTs = ts;
+  if (playing) {
+    let nt = T + dt * speed;
+    const next = cues[curCue + 1];
+    if (narr && speaking && next && nt >= next.T) {
+      held += dt;
+      if (held < 9) nt = next.T - 0.001; // segura o vídeo até a narração terminar
+    }
+    T = Math.min(total, nt);
+    if (T >= total) { playing = false; $('play').textContent = '↺'; }
+    render();
+  }
+  requestAnimationFrame(tick);
+}
+
+function go(t) { T = Math.max(0, Math.min(total, t)); hush(); curCue = -2; render(); }
+function toggle() {
+  $('start').hidden = true;
+  if (T >= total) go(0);
+  playing = !playing;
+  $('play').textContent = playing ? '❚❚' : '▶';
+  $('play').setAttribute('aria-label', playing ? 'Pausar' : 'Play');
+  if (!playing) hush();
+  else if (narr && cues[curCue]) speak(cues[curCue].say);
+}
+
+$('start').onclick = toggle;
+$('play').onclick = toggle;
+seek.addEventListener('input', () => go(+seek.value));
+$('speed').onchange = (e) => { speed = +e.target.value; };
+$('narr').onclick = () => {
+  narr = !narr; $('narr').classList.toggle('on', narr); $('narr').setAttribute('aria-pressed', narr);
+  $('narr').textContent = narr ? '🔊 Narração' : '🔇 Narração';
+  if (!narr) hush();
+};
+$('fs').onclick = () => {
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if ($('player').requestFullscreen) $('player').requestFullscreen();
+};
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
+  if (e.key === ' ') { e.preventDefault(); toggle(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); go(T + 5); }
+  else if (e.key === 'ArrowLeft') { e.preventDefault(); go(T - 5); }
+});
+
+fit();
+const mt = /t=([\d.]+)/.exec(location.hash);
+if (/notr/.test(location.hash)) document.body.classList.add('notr');
+if (mt) { $('start').hidden = true; T = Math.min(total, +mt[1]); }
+render();
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
