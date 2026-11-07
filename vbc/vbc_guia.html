@@ -1,0 +1,586 @@
+<title>Guia do VBC</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=IBM+Plex+Sans:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: índice fixo à esquerda no desktop + coluna de leitura; uma coluna no celular.
+   Cores dos três tipos do enum (MAP / INTEGER / STRING) são usadas em todos os diagramas. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1b2230;
+  --muted: #5b6577;
+  --line: #d9dee7;
+  --accent: #3b4fd8;
+  --code-bg: #eef1f6;
+  --map: #2f6fde;
+  --map-soft: #e3ecfc;
+  --int: #b9650c;
+  --int-soft: #fbeedd;
+  --str: #1d8a5a;
+  --str-soft: #dcf3e8;
+  --err: #c2352b;
+  --err-soft: #fbe3e1;
+  --kw: #8a3fd1;
+  --font-display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11151d; --surface: #181d27; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343;
+    --accent: #8b9bff; --code-bg: #1e2431;
+    --map: #7aa7ff; --map-soft: #1d2a47; --int: #f0a75a; --int-soft: #3a2a17;
+    --str: #5fd29e; --str-soft: #16352a; --err: #ff8378; --err-soft: #3d1d1b; --kw: #c99bff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11151d; --surface: #181d27; --fg: #e4e8ef; --muted: #9aa4b6; --line: #2b3343;
+  --accent: #8b9bff; --code-bg: #1e2431;
+  --map: #7aa7ff; --map-soft: #1d2a47; --int: #f0a75a; --int-soft: #3a2a17;
+  --str: #5fd29e; --str-soft: #16352a; --err: #ff8378; --err-soft: #3d1d1b; --kw: #c99bff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--fg);
+  font-family: var(--font-body); font-size: 16px; line-height: 1.6;
+}
+.wrap {
+  max-width: 1180px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 80px;
+  display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 48px;
+}
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 24px; } nav.toc { position: static !important; } }
+
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; font-size: 14px; }
+nav.toc .label { text-transform: uppercase; letter-spacing: .08em; font-size: 11px; color: var(--muted); font-weight: 600; }
+nav.toc ol { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 4px; counter-reset: s; }
+nav.toc li { counter-increment: s; }
+nav.toc a { color: var(--fg); text-decoration: none; display: flex; gap: 8px; padding: 3px 0; }
+nav.toc a::before { content: counter(s); font-family: var(--font-mono); color: var(--muted); width: 18px; flex: none; }
+nav.toc a:hover { color: var(--accent); }
+
+main { min-width: 0; }
+main > section { padding-top: 24px; margin-top: 32px; border-top: 1px solid var(--line); }
+main > section:first-of-type { border-top: 0; margin-top: 0; padding-top: 0; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; line-height: 1.15; }
+h1 { font-size: clamp(34px, 6vw, 52px); font-weight: 800; margin: 0 0 12px; letter-spacing: -.02em; }
+h2 { font-size: 28px; font-weight: 800; margin: 0 0 12px; letter-spacing: -.01em; }
+h3 { font-size: 19px; font-weight: 600; margin: 28px 0 8px; }
+p, li { max-width: 70ch; }
+.lead { font-size: 18px; color: var(--muted); max-width: 62ch; }
+.eyebrow { text-transform: uppercase; letter-spacing: .1em; font-size: 12px; font-weight: 600; color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .9em; background: var(--code-bg); padding: 1px 5px; border-radius: 4px; }
+a { color: var(--accent); }
+
+pre {
+  font-family: var(--font-mono); font-size: 13.5px; line-height: 1.55;
+  background: var(--code-bg); border: 1px solid var(--line); border-radius: 8px;
+  padding: 16px 18px; overflow-x: auto; margin: 12px 0 20px; tab-size: 4;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+.hljs-keyword, .hljs-built_in, .hljs-type { color: var(--kw); }
+.hljs-string { color: var(--str); }
+.hljs-number { color: var(--int); }
+.hljs-comment { color: var(--muted); font-style: italic; }
+.hljs-title, .hljs-title.function_ { color: var(--map); }
+.hljs-meta { color: var(--muted); }
+
+.t-map { color: var(--map); font-weight: 600; }
+.t-int { color: var(--int); font-weight: 600; }
+.t-str { color: var(--str); font-weight: 600; }
+
+.note { border-left: 3px solid var(--accent); background: var(--surface); padding: 12px 16px; margin: 16px 0; border-radius: 0 6px 6px 0; }
+.note.warn { border-left-color: var(--err); }
+.note p { margin: 4px 0; }
+.note strong:first-child { display: block; font-family: var(--font-display); font-size: 15px; }
+
+.table-wrap { overflow-x: auto; margin: 12px 0 20px; }
+table { border-collapse: collapse; width: 100%; font-size: 14.5px; }
+th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); font-weight: 600; }
+td code { white-space: nowrap; }
+
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 99px; white-space: nowrap; }
+.pill.given { background: var(--code-bg); color: var(--muted); }
+.pill.you { background: var(--map-soft); color: var(--map); }
+.pill.ok { background: var(--str-soft); color: var(--str); }
+.pill.bad { background: var(--err-soft); color: var(--err); }
+
+.diagram { overflow-x: auto; margin: 16px 0 24px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+.diagram svg { display: block; height: auto; margin: 0 auto; }
+.diagram svg text { font-family: var(--font-mono); }
+.cap { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+.checklist { list-style: none; padding: 0; display: grid; gap: 8px; }
+.checklist li { display: grid; grid-template-columns: 28px minmax(0, 1fr); align-items: start; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px; }
+.checklist li::before { content: "☐"; font-size: 18px; line-height: 1.4; color: var(--accent); }
+
+/* tracer */
+.tracer { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin: 16px 0; }
+.tape { display: flex; gap: 3px; flex-wrap: wrap; margin-bottom: 14px; }
+.cell { font-family: var(--font-mono); width: 32px; height: 40px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 5px; font-size: 16px; position: relative; background: var(--bg); }
+.cell .i { position: absolute; bottom: -16px; font-size: 10px; color: var(--muted); }
+.cell.read { color: var(--muted); opacity: .5; }
+.cell.cur { border: 2px solid var(--accent); background: var(--map-soft); font-weight: 600; }
+.trace-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 22px; }
+@media (max-width: 640px) { .trace-grid { grid-template-columns: minmax(0, 1fr); } }
+.trace-grid h4 { margin: 0 0 6px; font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.stack { display: flex; flex-direction: column-reverse; gap: 4px; }
+.frame { font-family: var(--font-mono); font-size: 13px; padding: 4px 10px; border-radius: 5px; background: var(--code-bg); border: 1px solid var(--line); }
+.frame:last-child { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+.ast { font-family: var(--font-mono); font-size: 13px; white-space: pre; background: var(--code-bg); border-radius: 6px; padding: 10px; overflow-x: auto; min-height: 90px; margin: 0; }
+.msg { margin: 14px 0 0; padding: 10px 14px; border-radius: 6px; background: var(--bg); border: 1px dashed var(--line); min-height: 48px; }
+.controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 14px; }
+button { font: 600 14px var(--font-body); padding: 7px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--fg); cursor: pointer; }
+button.primary { background: var(--accent); color: var(--surface); border-color: var(--accent); }
+button:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+button:disabled { opacity: .4; cursor: default; }
+.step-count { font-family: var(--font-mono); font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 700px) { .two { grid-template-columns: minmax(0, 1fr); } }
+.box { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.box h4 { margin: 0 0 8px; font-family: var(--font-display); font-size: 16px; }
+.box ul { margin: 0; padding-left: 18px; }
+
+/* ── Responsividade mobile ────────────────────────── */
+@media (max-width: 860px) {
+  .wrap { padding-block: 20px 48px; }
+  nav.toc { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  nav.toc .label { padding: 10px 14px; cursor: pointer; user-select: none; display: flex; justify-content: space-between; align-items: center; }
+  nav.toc ol { padding: 0 14px 10px; }
+}
+@media (max-width: 520px) {
+  h2 { font-size: clamp(20px, 5.5vw, 28px); }
+  h3 { font-size: 17px; }
+  pre { font-size: 12px; padding: 12px 14px; }
+  .tracer { padding: 12px; }
+  .msg { font-size: 13px; }
+}
+</style>
+<style>
+.tok-d { color: var(--int); } .tok-op { color: var(--kw); } .tok-p { color: var(--map); }
+.big-rule { font-family: var(--font-mono); font-size: 15px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 18px; line-height: 2; overflow-x: auto; white-space: pre; }
+.big-rule b { color: var(--map); }
+.fixes { counter-reset: f; list-style: none; padding: 0; display: grid; gap: 10px; }
+.fixes li { counter-increment: f; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 14px 10px 48px; position: relative; max-width: none; }
+.fixes li::before { content: counter(f); position: absolute; left: 14px; top: 10px; width: 24px; height: 24px; border-radius: 50%; background: var(--err-soft); color: var(--err); font: 600 13px/24px var(--font-mono); text-align: center; }
+.fixes pre { margin: 8px 0 0; }
+.input-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.input-row input { font: 15px var(--font-mono); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); min-width: 0; flex: 1 1 220px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.chips button { font: 12.5px var(--font-mono); padding: 3px 9px; }
+.msg.err { border-color: var(--err); color: var(--err); }
+.msg.ok { border-color: var(--str); color: var(--str); }
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Índice">
+  <div class="label">Índice</div>
+  <ol>
+    <li><a href="#visao">O que é o vbc</a></li>
+    <li><a href="#prova">Recebo ou crio o .h?</a></li>
+    <li><a href="#gramatica">A ideia: 3 funções</a></li>
+    <li><a href="#given">Consertos na given</a></li>
+    <li><a href="#funcoes">As funções, uma a uma</a></li>
+    <li><a href="#trace">Execute passo a passo</a></li>
+    <li><a href="#erros">Como os erros saem</a></li>
+    <li><a href="#final">Código final</a></li>
+    <li><a href="#decorar">Roteiro para decorar</a></li>
+    <li><a href="#armadilhas">Armadilhas</a></li>
+  </ol>
+</nav>
+
+<main>
+<section id="visao">
+  <div class="eyebrow">Exam Rank 04 · level 2</div>
+  <h1>VBC</h1>
+  <p class="lead">Um programa que recebe uma conta como <code>'(3+4)*5'</code> e imprime o resultado. Só existem dígitos de 0 a 9, <code>+</code>, <code>*</code> e parênteses. A given já traz quase tudo; você escreve <strong>3 funções curtas, quase iguais</strong> e conserta 6 bugs.</p>
+
+  <div class="table-wrap"><table>
+    <tr><th>Entrada</th><th>Saída</th><th>Exit</th></tr>
+    <tr><td><code>3+4*5</code></td><td><code>23</code></td><td>0</td></tr>
+    <tr><td><code>(3+4)*5</code></td><td><code>35</code></td><td>0</td></tr>
+    <tr><td><code>1+</code></td><td><code>Unexpected end of input</code></td><td>1</td></tr>
+    <tr><td><code>1+2)</code></td><td><code>Unexpected token ')'</code></td><td>1</td></tr>
+    <tr><td><code>((1+3)*12+(3*(2+6))</code></td><td><code>Unexpected token '2'</code></td><td>1</td></tr>
+  </table></div>
+  <p>Funções permitidas: <code>malloc calloc realloc free printf isdigit write</code>. Repare que <strong><code>exit</code> não está na lista</strong>: por isso o erro tem que "subir" retornando <code>NULL</code> até o <code>main</code>, que faz <code>return (1)</code>.</p>
+</section>
+
+<section id="prova">
+  <h2>Recebo ou crio o <code>.h</code>?</h2>
+  <p><strong>Na prova você recebe só a given</strong> (um <code>.c</code>, normalmente chamado <code>vbc.c</code> ou <code>given.c</code>, igual ao que está comentado em <code>given_comentado.c</code>). Não vem <code>.h</code> nenhum e você <strong>não precisa</strong> criar um: "Expected files: *.c *.h" só quer dizer que você <em>pode</em> entregar headers se quiser. Entregue um único <code>vbc.c</code>.</p>
+  <div class="note warn">
+    <strong>O <code>vbc.h</code> do 42_examshell é coisa do simulador</strong>
+    <p>O <code>tester.sh</code> do simulador recusa rodar se não existir <code>rendu/vbc/vbc.h</code>. Para treinar lá, crie um <code>vbc.h</code> vazio com include guard. Pior: a solução de referência do simulador está errada (imprime <code>Unexpected end of file</code>, imprime <code>0</code> para entrada vazia, aceita <code>1++2</code>…). Então <strong>as falhas que o tester do simulador mostrar nesses casos são erros do simulador, não seus</strong>. Confie no subject.</p>
+  </div>
+</section>
+
+<section id="gramatica">
+  <h2>A ideia: 3 funções, uma por nível de prioridade</h2>
+  <p>Uma conta é uma <strong>soma de produtos de fatores</strong>. Cada nível vira uma função, e cada função chama a do nível de baixo:</p>
+  <div class="big-rule"><b>sum</b>     = product { '+' product }
+<b>product</b> = factor  { '*' factor  }
+<b>factor</b>  = dígito  |  '(' sum ')'</div>
+  <p>Quem fica <strong>mais fundo</strong> na chamada resolve <strong>primeiro</strong>. <code>sum</code> chama <code>product</code>, então em <code>3+4*5</code> o <code>4*5</code> já vem pronto antes do <code>+</code> juntar. E o <code>factor</code> chama <code>sum</code> de novo quando vê <code>(</code>: é assim que o parêntese "reinicia" a prioridade.</p>
+
+  <div class="diagram">
+    <svg viewBox="0 0 520 210" width="520" role="img" aria-label="Árvore de 3+4*5: ADD com filho 3 e filho MULTI(4,5)">
+      <g stroke="var(--line)" stroke-width="2"><line x1="260" y1="44" x2="150" y2="104"/><line x1="260" y1="44" x2="370" y2="104"/><line x1="370" y1="134" x2="300" y2="174"/><line x1="370" y1="134" x2="440" y2="174"/></g>
+      <rect x="215" y="16" width="90" height="32" rx="6" fill="var(--map-soft)" stroke="var(--map)"/><text x="260" y="37" text-anchor="middle" fill="var(--map)" font-size="14" font-weight="600">ADD</text>
+      <rect x="120" y="104" width="60" height="32" rx="6" fill="var(--int-soft)" stroke="var(--int)"/><text x="150" y="125" text-anchor="middle" fill="var(--int)" font-size="14">VAL 3</text>
+      <rect x="325" y="104" width="90" height="32" rx="6" fill="var(--str-soft)" stroke="var(--str)"/><text x="370" y="125" text-anchor="middle" fill="var(--str)" font-size="14" font-weight="600">MULTI</text>
+      <rect x="270" y="168" width="60" height="32" rx="6" fill="var(--int-soft)" stroke="var(--int)"/><text x="300" y="189" text-anchor="middle" fill="var(--int)" font-size="14">VAL 4</text>
+      <rect x="410" y="168" width="60" height="32" rx="6" fill="var(--int-soft)" stroke="var(--int)"/><text x="440" y="189" text-anchor="middle" fill="var(--int)" font-size="14">VAL 5</text>
+    </svg>
+    <div class="cap">Árvore gerada para <code>3+4*5</code>. O <code>eval_tree</code> da given calcula de baixo para cima: 4*5 = 20, depois 3+20 = 23.</div>
+  </div>
+</section>
+
+<section id="given">
+  <h2>Consertos na given</h2>
+  <p>A given vem com bugs de propósito. São 6 mudanças, todas pequenas:</p>
+  <ol class="fixes">
+    <li><strong>Include.</strong> <code>#include &lt;malloc.h&gt;</code> vira <code>#include &lt;stdlib.h&gt;</code> (o próprio comentário avisa).</li>
+    <li><strong>Linha lixo.</strong> Apague <code>node *n(**s);</code>: não compila.</li>
+    <li><strong><code>accept</code> não compara.</strong> Ele consome qualquer caractere. Troque a condição:
+<pre><code>if (**s)        →        if (**s == c)</code></pre></li>
+    <li><strong>O buraco <code>//...</code></strong>: escreva <code>parse_factor</code>, <code>parse_product</code>, <code>parse_sum</code> (próxima seção).</li>
+    <li><strong><code>parse_expr</code></strong>: comece com <code>ret = parse_sum(&amp;s)</code>, devolva NULL se falhar, e quando sobrar caractere <strong>imprima</strong> <code>unexpected(*s)</code> antes do <code>destroy_tree</code>. A given não imprime nada aí.</li>
+    <li><strong><code>eval_tree</code></strong>: coloque <code>return (0);</code> depois do <code>switch</code>. Sem isso, <code>-Wall -Werror</code> dá "control reaches end of non-void function".</li>
+  </ol>
+</section>
+
+<section id="funcoes">
+  <h2>As funções, uma a uma</h2>
+
+  <h3>1. <code>parse_factor</code>: o átomo</h3>
+  <p>Três caminhos: é dígito → cria folha; é <code>(</code> → chama <code>parse_sum</code> e exige <code>)</code>; senão → erro com o caractere atual (se for <code>'\0'</code>, o <code>unexpected</code> já imprime "end of input").</p>
+<pre><code>node    *parse_sum(char **s);   // protótipo: factor chama sum
+
+node    *parse_factor(char **s)
+{
+    node    *ret;
+
+    if (isdigit(**s))
+    {
+        ret = new_node((node){.type = VAL, .val = **s - '0'});
+        (*s)++;
+        return (ret);
+    }
+    if (accept(s, '('))
+    {
+        ret = parse_sum(s);
+        if (!ret)
+            return (NULL);
+        if (!expect(s, ')'))
+        {
+            destroy_tree(ret);
+            return (NULL);
+        }
+        return (ret);
+    }
+    unexpected(**s);
+    return (NULL);
+}</code></pre>
+  <div class="note">
+    <strong><code>(node){.type = VAL, .val = 5}</code></strong>
+    <p>É um <em>compound literal</em>: cria um <code>node</code> temporário na hora, com os campos não citados zerados. O <code>new_node</code> da given copia ele para o heap. Poupa declarar variável <code>tmp</code>.</p>
+  </div>
+
+  <h3>2. <code>parse_product</code>: fatores ligados por <code>*</code></h3>
+  <p>Lê um fator à esquerda. Enquanto vier <code>*</code>: lê outro fator e junta os dois num nó <code>MULTI</code>, que vira o novo "esquerda".</p>
+<pre><code>node    *parse_product(char **s)
+{
+    node    *left;
+    node    *right;
+
+    left = parse_factor(s);
+    if (!left)
+        return (NULL);
+    while (accept(s, '*'))
+    {
+        right = parse_factor(s);
+        if (!right)
+        {
+            destroy_tree(left);
+            return (NULL);
+        }
+        left = new_node((node){.type = MULTI, .l = left, .r = right});
+    }
+    return (left);
+}</code></pre>
+
+  <h3>3. <code>parse_sum</code>: <strong>cópia</strong> do product</h3>
+  <p>Exatamente o mesmo código, trocando 3 coisas: <code>parse_factor</code> → <code>parse_product</code>, <code>'*'</code> → <code>'+'</code>, <code>MULTI</code> → <code>ADD</code>.</p>
+<pre><code>node    *parse_sum(char **s)
+{
+    node    *left;
+    node    *right;
+
+    left = parse_product(s);
+    if (!left)
+        return (NULL);
+    while (accept(s, '+'))
+    {
+        right = parse_product(s);
+        if (!right)
+        {
+            destroy_tree(left);
+            return (NULL);
+        }
+        left = new_node((node){.type = ADD, .l = left, .r = right});
+    }
+    return (left);
+}</code></pre>
+
+  <h3>4. <code>parse_expr</code>: a porta de entrada</h3>
+  <p>Se <code>parse_sum</code> terminou mas ainda tem caractere sobrando, é lixo no final (um <code>)</code> a mais, dois dígitos seguidos…).</p>
+<pre><code>node    *parse_expr(char *s)
+{
+    node    *ret;
+
+    ret = parse_sum(&amp;s);
+    if (!ret)
+        return (NULL);
+    if (*s)
+    {
+        unexpected(*s);
+        destroy_tree(ret);
+        return (NULL);
+    }
+    return (ret);
+}</code></pre>
+  <div class="note">
+    <strong>Por que <code>char **s</code>?</strong>
+    <p>Todas as funções andam pela mesma string. Passando o endereço do ponteiro, quando <code>parse_factor</code> faz <code>(*s)++</code>, quem chamou também "vê" que o cursor andou. É por isso que <code>parse_expr</code> passa <code>&amp;s</code>.</p>
+  </div>
+</section>
+
+<section id="trace">
+  <h2>Execute passo a passo</h2>
+  <p>Digite uma expressão e avance. A fita mostra o cursor <code>*s</code>; a pilha mostra quais funções estão abertas.</p>
+  <div class="tracer">
+    <div class="chips" id="chips"></div>
+    <div class="input-row">
+      <input id="expr" value="(3+4)*5" aria-label="Expressão" spellcheck="false" autocomplete="off">
+      <button class="primary" id="run">Carregar</button>
+    </div>
+    <div class="tape" id="tape"></div>
+    <div class="trace-grid">
+      <div><h4>Pilha de chamadas</h4><div class="stack" id="stack"></div></div>
+      <div><h4>Árvore (quando pronta)</h4><pre class="ast" id="ast"></pre></div>
+    </div>
+    <div class="msg" id="msg"></div>
+    <div class="controls">
+      <button id="prev">◀ Voltar</button>
+      <button class="primary" id="next">Avançar ▶</button>
+      <button id="end">Fim ⏭</button>
+      <span class="step-count" id="count"></span>
+    </div>
+  </div>
+</section>
+
+<section id="erros">
+  <h2>Como os erros saem (sem código extra)</h2>
+  <p>Você <strong>não precisa</strong> contar parênteses nem validar a string antes. Todo erro aparece sozinho em um de três lugares:</p>
+  <div class="table-wrap"><table>
+    <tr><th>Onde</th><th>Quando</th><th>Exemplos</th></tr>
+    <tr><td><code>parse_factor</code></td><td>esperava dígito ou <code>(</code> e veio outra coisa</td><td><code>1+</code> → end of input · <code>1++2</code> → <code>'+'</code> · <code>abc</code> → <code>'a'</code> · <code>()</code> → <code>')'</code></td></tr>
+    <tr><td><code>expect(s, ')')</code></td><td>fechou a soma dentro do parêntese mas não veio <code>)</code></td><td><code>((1+2)*3</code> → end of input · <code>(1+12)</code> → <code>'2'</code></td></tr>
+    <tr><td><code>parse_expr</code></td><td>sobrou caractere no fim</td><td><code>1+2)</code> → <code>')'</code> · <code>12</code> → <code>'2'</code> · <code>1 + 2</code> → <code>' '</code></td></tr>
+  </table></div>
+  <p>Depois de imprimir, cada função libera o que já construiu (<code>destroy_tree(left)</code>) e devolve <code>NULL</code>, até chegar no <code>main</code>, que retorna 1. Sem leaks.</p>
+</section>
+
+<section id="final">
+  <h2>Código final</h2>
+  <p>Está em <code>vbc/vbc.c</code>. Compila com <code>gcc -Wall -Wextra -Werror</code>, passa em todos os exemplos do subject e o valgrind não acusa vazamento. Tudo que não é parser é <strong>igual à given</strong>.</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;ctype.h&gt;
+
+/* typedef struct node, new_node, destroy_tree, unexpected: IGUAL À GIVEN */
+
+int accept(char **s, char c)
+{
+    if (**s == c)            // ← conserto
+    {
+        (*s)++;
+        return (1);
+    }
+    return (0);
+}
+
+/* expect: IGUAL À GIVEN */
+
+/* parse_sum (protótipo), parse_factor, parse_product, parse_sum, parse_expr:
+   como na seção 5 */
+
+int eval_tree(node *tree)
+{
+    switch (tree->type)
+    {
+        /* ... IGUAL À GIVEN ... */
+    }
+    return (0);              // ← conserto
+}
+
+/* main: IGUAL À GIVEN */</code></pre>
+</section>
+
+<section id="decorar">
+  <h2>Roteiro para decorar</h2>
+  <p>Na prova, faça nesta ordem:</p>
+  <ul class="checklist">
+    <li><span>Trocar <code>malloc.h</code> → <code>stdlib.h</code> e apagar <code>node *n(**s);</code></span></li>
+    <li><span><code>accept</code>: <code>if (**s == c)</code></span></li>
+    <li><span><code>eval_tree</code>: <code>return (0);</code> no final</span></li>
+    <li><span>Escrever <code>parse_product</code> (o "molde": left, while accept, right, if !right destroy, left = new_node)</span></li>
+    <li><span>Copiar e colar como <code>parse_sum</code>, trocando factor→product, <code>*</code>→<code>+</code>, MULTI→ADD</span></li>
+    <li><span>Escrever <code>parse_factor</code> (dígito / <code>(</code> sum expect <code>)</code> / unexpected) + protótipo de <code>parse_sum</code> antes dele</span></li>
+    <li><span><code>parse_expr</code>: <code>parse_sum(&amp;s)</code>, checar NULL, e <code>unexpected(*s)</code> se sobrou</span></li>
+    <li><span>Testar: <code>'3+4*5'</code>=23, <code>'(3+4)*5'</code>=35, <code>'1+'</code>, <code>'1+2)'</code>, <code>''</code></span></li>
+  </ul>
+  <p>Frase para lembrar a ordem das chamadas: <strong>"soma de produtos de fatores; fator é dígito ou parêntese com soma dentro"</strong>.</p>
+</section>
+
+<section id="armadilhas">
+  <h2>Armadilhas</h2>
+  <div class="two">
+    <div class="box"><h4>Erros que reprovam</h4><ul>
+      <li>Esquecer de consertar <code>accept</code>: tudo vira "token aceito".</li>
+      <li>Não imprimir nada em <code>parse_expr</code> quando sobra caractere: <code>1+2)</code> sai mudo.</li>
+      <li>Imprimir o resultado <strong>e</strong> o erro. Ao achar erro, só a mensagem.</li>
+      <li>Mensagem diferente: é <code>end of input</code>, não <code>end of file</code>.</li>
+      <li>Usar <code>exit()</code>: não está na lista de permitidas.</li>
+    </ul></div>
+    <div class="box"><h4>Detalhes</h4><ul>
+      <li><code>(*s)++</code>, não <code>*s++</code> (este anda o ponteiro errado).</li>
+      <li>Protótipo de <code>parse_sum</code> antes de <code>parse_factor</code>, senão não compila.</li>
+      <li>Resultado pode passar de <code>INT_MAX</code> (<code>9*9*…</code>): o subject não exige tratar.</li>
+      <li>No simulador, crie um <code>vbc.h</code> vazio só para o tester rodar.</li>
+    </ul></div>
+  </div>
+</section>
+</main>
+</div>
+
+<script>
+(function () {
+  const $ = (id) => document.getElementById(id);
+  const examples = ['3+4*5', '(3+4)*5', '1+', '1+2)', '((1+3)*12+(3*(2+6))', '1++2', ''];
+  let steps = [], cur = 0, text = '';
+
+  function show(n) {
+    if (!n) return '';
+    if (n.t === 'VAL') return String(n.v);
+    return '(' + show(n.l) + (n.t === 'ADD' ? ' + ' : ' * ') + show(n.r) + ')';
+  }
+  function drawTree(n, pre, last, out) {
+    if (!n) return;
+    const label = n.t === 'VAL' ? 'VAL ' + n.v : n.t;
+    out.push(pre + (pre === '' && last === null ? '' : (last ? '└─ ' : '├─ ')) + label);
+    if (n.t !== 'VAL') {
+      const np = last === null ? '' : pre + (last ? '   ' : '│  ');
+      drawTree(n.l, np, false, out);
+      drawTree(n.r, np, true, out);
+    }
+  }
+  function evalT(n) { return n.t === 'VAL' ? n.v : n.t === 'ADD' ? evalT(n.l) + evalT(n.r) : evalT(n.l) * evalT(n.r); }
+
+  function trace(str) {
+    const st = [], stack = [];
+    let p = 0;
+    const snap = (msg, kind, tree) => st.push({ p, stack: stack.slice(), msg, kind: kind || '', tree: tree || null });
+    const ch = () => p < str.length ? str[p] : '';
+    const unexpected = () => ch() ? "Unexpected token '" + ch() + "'" : 'Unexpected end of input';
+    const err = (where) => { const m = unexpected(); snap(where + ': imprime <code>' + m + '</code> e devolve NULL', 'err'); return null; };
+
+    function factor() {
+      stack.push('parse_factor');
+      snap('parse_factor olha <code>' + (ch() || '\\0') + '</code>');
+      let r;
+      if (/[0-9]/.test(ch())) {
+        r = { t: 'VAL', v: +ch() }; p++;
+        snap('é dígito: cria <code>VAL ' + r.v + '</code> e anda o cursor');
+      } else if (ch() === '(') {
+        p++; snap('accept("(") ok: chama parse_sum para o miolo');
+        r = sum();
+        if (r) {
+          if (ch() === ')') { p++; snap('expect(")") ok: devolve ' + show(r)); }
+          else { r = err('expect(")") falhou'); }
+        }
+      } else r = err('nem dígito nem "("');
+      stack.pop(); return r;
+    }
+    function bin(name, sub, op, type) {
+      return function () {
+        stack.push(name);
+        snap(name + ' começa: pede o lado esquerdo');
+        let left = sub();
+        if (!left) { stack.pop(); return null; }
+        while (ch() === op) {
+          p++; snap('accept("' + op + '") ok: pede o lado direito (left = ' + show(left) + ')');
+          const right = sub();
+          if (!right) { snap('direito falhou: destroy_tree(left), devolve NULL', 'err'); stack.pop(); return null; }
+          left = { t: type, l: left, r: right };
+          snap('junta num nó ' + type + ': left = ' + show(left));
+        }
+        snap(name + ' acabou (próximo não é "' + op + '"): devolve ' + show(left));
+        stack.pop(); return left;
+      };
+    }
+    let sum;
+    const product = bin('parse_product', factor, '*', 'MULTI');
+    sum = bin('parse_sum', product, '+', 'ADD');
+
+    stack.push('parse_expr');
+    snap('main chama parse_expr("' + str + '")');
+    const t = sum();
+    if (t) {
+      if (ch()) { snap('sobrou <code>' + ch() + '</code> no fim: imprime <code>Unexpected token \'' + ch() + '\'</code>, exit 1', 'err'); }
+      else { snap('string acabou certinho. eval_tree → imprime <code>' + evalT(t) + '</code>, exit 0', 'ok', t); }
+    } else snap('parse_expr recebe NULL → main retorna 1', 'err');
+    return st;
+  }
+
+  function render() {
+    const s = steps[cur];
+    const tape = $('tape'); tape.innerHTML = '';
+    for (let i = 0; i <= text.length; i++) {
+      const d = document.createElement('div');
+      d.className = 'cell' + (i < s.p ? ' read' : '') + (i === s.p ? ' cur' : '');
+      d.innerHTML = (i < text.length ? text[i].replace(/&/g, '&amp;').replace(/</g, '&lt;') : '\\0') + '<span class="i">' + i + '</span>';
+      tape.appendChild(d);
+    }
+    const st = $('stack'); st.innerHTML = '';
+    s.stack.forEach((f) => { const d = document.createElement('div'); d.className = 'frame'; d.textContent = f; st.appendChild(d); });
+    const out = []; if (s.tree) drawTree(s.tree, '', null, out);
+    $('ast').textContent = out.join('\n');
+    $('msg').innerHTML = s.msg; $('msg').className = 'msg ' + s.kind;
+    $('count').textContent = (cur + 1) + ' / ' + steps.length;
+    $('prev').disabled = cur === 0; $('next').disabled = $('end').disabled = cur === steps.length - 1;
+  }
+  function load() { text = $('expr').value; steps = trace(text); cur = 0; render(); }
+
+  examples.forEach((e) => {
+    const b = document.createElement('button'); b.textContent = e === '' ? "''" : e;
+    b.onclick = () => { $('expr').value = e; load(); }; $('chips').appendChild(b);
+  });
+  $('run').onclick = load;
+  $('expr').addEventListener('keydown', (e) => { if (e.key === 'Enter') load(); });
+  $('next').onclick = () => { if (cur < steps.length - 1) { cur++; render(); } };
+  $('prev').onclick = () => { if (cur > 0) { cur--; render(); } };
+  $('end').onclick = () => { cur = steps.length - 1; render(); };
+  load();
+})();
+</script>
